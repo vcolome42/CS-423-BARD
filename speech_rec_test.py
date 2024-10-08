@@ -11,7 +11,12 @@ r = sr.Recognizer()
 
 # Reading Microphone as source
 # listening the speech and store in audio_text variable
+
+print(sr.Microphone.list_microphone_names())
+print(sr.Microphone.list_working_microphones())
+
 with sr.Microphone() as source:
+    r.adjust_for_ambient_noise(source, duration=1)
     print("Talk")
     audio_text = r.listen(source)
     print("Time over, thanks")
@@ -23,4 +28,4 @@ with sr.Microphone() as source:
         # using google speech recognition
         print("Text: " + r.recognize_google(audio_text))
     except Exception as e:
-        print("Sorry, I did not get that:", e) # Print exception 
+        print("Sorry, I did not get that:", e) # Print exception
