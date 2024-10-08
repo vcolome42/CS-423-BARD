@@ -10,6 +10,14 @@ class Game:
         self.ground = set()
         self.entities = []
         self.walls = set()
+    def step(self):
+        for entity in self.entities.copy(): # destroyed entities shouldn't act in this step.
+            if entity.destroyed:
+                self.entities.remove(entity)
+
+        for entity in self.entities:
+            if entity != self.controller_entity:
+                pass
     def create_occlusion_set(self) -> Set[Tuple[int, int]]:
         occ = set()
         for wall in self.walls:
@@ -18,11 +26,21 @@ class Game:
             if entity.collision:
                 occ.add(entity.grid_pos)
         return occ
+    def create_description(self):
+        return {
+            "entities": [
+                {
+                    "synonyms": entity.get_synonym_list(),
+                    "flags": entity.get_flags(),
+                } for entity in self.entities
+            ]
+        }
 
 class Entity:
     grid_pos: Tuple[int, int]
     sprite_idx: int
     collision: bool = False
+    destroyed: bool = False
     def with_grid_pos(self, grid_pos: Tuple[int, int]):
         self.grid_pos = grid_pos
         return self
@@ -32,6 +50,34 @@ class Entity:
     def with_collision(self, collision: bool):
         self.collision = collision
         return self
+    def get_synonym_list(self) -> Set[str]:
+        return set()
+    def get_flags(self) -> Set[str]:
+        return set()
+
+    def destroy(self):
+        self.destroyed = True
+
+class Door(Entity):
+    opened: bool = False
+    def __init__(self):
+        self.sprite_idx = 2
+        self.collision = True
+    def set_opened(self, opened: bool):
+        self.opened = opened
+        self.collision = not opened
+        self.sprite_idx = 6 if opened else 2
+    def get_synonym_list(self) -> Set[str]:
+        return super().get_synonym_list().union({
+            "door",
+            "gate",
+            "entrance",
+            "exit",
+        })
+    def get_flags(self) -> Set[str]:
+        return super().get_flags().union({
+            "opened" if self.opened else "closed"
+        })
 
 class EntityAction:
     def is_valid(self, user: Entity, game: Game) -> bool:

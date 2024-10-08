@@ -26,6 +26,9 @@ player = (core.Entity()
 game.entities.append(player)
 game.controller_entity = player
 
+door = core.Door().with_grid_pos((debug_room_center + 1, debug_room_center))
+game.entities.append(door)
+
 # pygame setup
 pg.init()
 pg.font.init()
