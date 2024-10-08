@@ -1,9 +1,17 @@
+from typing import Tuple
+
 import pygame as pg
 import speech_recognition as speech
 import sprites
+import core
 
 recognizer = speech.Recognizer()
 recognizer.dynamic_energy_threshold = False
+
+game = core.Game()
+for j in range(0, 5):
+    for i in range(0, 5):
+        game.ground_map[(i, j)] = True
 
 # pygame setup
 pg.init()
@@ -43,6 +51,13 @@ def print_voice():
     text_surf = DEFAULT_FONT.render(text, False, (255, 255, 255))
 print_voice_debounce = False
 
+def grid_to_draw(gridpos: Tuple[int, int]) -> Tuple[int, int]:
+    return (gridpos[0] * 16, gridpos[1] * 16)
+
+def render_game(game: core.Game):
+    for ground_gridpos in game.ground_map:
+        game_screen.blit(tiles.get_sprite(1), grid_to_draw(ground_gridpos))
+
 while running:
     for event in pg.event.get():
         if event.type == pg.QUIT:
@@ -56,8 +71,7 @@ while running:
     # Render steps
     game_screen.fill("black")
     game_screen.blit(text_surf, (0, 0))
-    game_screen.blit(tiles.get_sprite(0), (0, 0))
-    game_screen.blit(tiles.get_sprite(8), (0, 0))
+    render_game(game)
 
     screen.fill("black")
     screen.blit(pg.transform.scale(game_screen, screen.get_rect().size), (0, 0))
