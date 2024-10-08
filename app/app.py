@@ -20,8 +20,8 @@ for j in range(0, debug_room_size):
         manhat_dist = delta[0] if delta[0] >= delta[1] else delta[1]
         if manhat_dist >= 4:
             game.walls.add((i, j))
-player = ((core.Entity()
-           .with_grid_pos((debug_room_center, debug_room_center)))
+player = (core.Entity()
+          .with_grid_pos((debug_room_center, debug_room_center))
           .with_sprite_idx(8))
 game.entities.append(player)
 game.controller_entity = player
@@ -35,8 +35,9 @@ text = "Hello world"
 text_surf = DEFAULT_FONT.render(text, False, (255, 255, 255))
 
 SCREEN_SIZE = (240, 144)
+RENDER_SCALE = 2
 
-screen = pg.display.set_mode((SCREEN_SIZE[0] * 4, SCREEN_SIZE[1] * 4), pg.RESIZABLE)
+screen = pg.display.set_mode((SCREEN_SIZE[0] * RENDER_SCALE, SCREEN_SIZE[1] * RENDER_SCALE), pg.RESIZABLE)
 clock = pg.time.Clock()
 running = True
 
@@ -49,7 +50,7 @@ def ask_voice(recognizer: speech.Recognizer):
         try:
             recognizer.adjust_for_ambient_noise(source, duration=1)
             print("Rec start.")
-            audio_text = recognizer.listen(source, timeout=1.0, phrase_time_limit=5.0)
+            audio_text = recognizer.listen(source, timeout=3.0, phrase_time_limit=5.0)
             print("Rec end.")
             out = recognizer.recognize_google(audio_text)
             print("Text: " + out)
@@ -58,11 +59,17 @@ def ask_voice(recognizer: speech.Recognizer):
     return out
 def print_voice():
     global text_surf
-    print("printing")
     data = ask_voice(recognizer)
-    text = "SPEECH: " + data if data is not None else ""
+    text = f"Voice: { "\"{}\"".format(data) if data is not None else "None"}"
     text_surf = DEFAULT_FONT.render(text, False, (255, 255, 255))
-print_voice_debounce = False
+def decide_voice():
+    global text_surf
+    data = ask_voice(recognizer)
+    text = f"Voice: { "\"{}\"".format(data) if data is not None else "None"}"
+    text_surf = DEFAULT_FONT.render(text, False, (255, 255, 255))
+    if data == "move left":
+        player_decide(core.MoveAction((-1, 0)))
+decide_voice_debounce = False
 
 def player_decide(action: core.EntityAction):
     player = game.controller_entity
@@ -97,7 +104,7 @@ while running:
             if event.key == pg.K_SPACE:
                 text = "LISTENING: "
                 text_surf = DEFAULT_FONT.render(text, False, (255, 255, 255))
-                print_voice_debounce = True
+                decide_voice_debounce = True
 
     # Render steps
     game_screen.fill("black")
@@ -110,9 +117,9 @@ while running:
     # flip buffer to display
     pg.display.flip()
 
-    if print_voice_debounce:
-        print_voice()
-        print_voice_debounce = False
+    if decide_voice_debounce:
+        decide_voice()
+        decide_voice_debounce = False
 
     clock.tick(60)
 

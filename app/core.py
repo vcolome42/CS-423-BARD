@@ -23,8 +23,6 @@ class Entity:
     grid_pos: Tuple[int, int]
     sprite_idx: int
     collision: bool = False
-    def __init__(self):
-        pass
     def with_grid_pos(self, grid_pos: Tuple[int, int]):
         self.grid_pos = grid_pos
         return self
