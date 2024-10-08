@@ -1,10 +1,13 @@
-from typing import Tuple
+from typing import Tuple, Set
 
 class Game:
-    ground_map: dict[Tuple[int, int], bool]
+    ground: Set[Tuple[int, int]]
+    entities: list
+    walls: Set[Tuple[int, int]]
     def __init__(self):
-        self.ground_map = {}
+        self.ground = set()
         self.entities = []
+        self.walls = set()
 
 class Entity:
     grid_pos: Tuple[int, int]
