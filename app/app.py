@@ -64,6 +64,11 @@ def print_voice():
     text_surf = DEFAULT_FONT.render(text, False, (255, 255, 255))
 print_voice_debounce = False
 
+def player_decide(action: core.EntityAction):
+    player = game.controller_entity
+    if action.is_valid(player, game):
+        action.act(player, game)
+
 def grid_to_draw(gridpos: Tuple[int, int]) -> Tuple[int, int]:
     return (gridpos[0] * 16, gridpos[1] * 16)
 
@@ -81,21 +86,13 @@ while running:
             running = False
         if event.type == pg.KEYUP:
             if event.key == pg.K_DOWN:
-                player = game.controller_entity
-                action = core.MoveAction((0, 1))
-                action.act(player, game)
+                player_decide(core.MoveAction((0, 1)))
             if event.key == pg.K_UP:
-                player = game.controller_entity
-                action = core.MoveAction((0, -1))
-                action.act(player, game)
+                player_decide(core.MoveAction((0, -1)))
             if event.key == pg.K_LEFT:
-                player = game.controller_entity
-                action = core.MoveAction((-1, 0))
-                action.act(player, game)
+                player_decide(core.MoveAction((-1, 0)))
             if event.key == pg.K_RIGHT:
-                player = game.controller_entity
-                action = core.MoveAction((1, 0))
-                action.act(player, game)
+                player_decide(core.MoveAction((1, 0)))
 
             if event.key == pg.K_SPACE:
                 text = "LISTENING: "

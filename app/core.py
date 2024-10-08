@@ -11,13 +11,13 @@ class Game:
         self.entities = []
         self.walls = set()
     def create_occlusion_set(self) -> Set[Tuple[int, int]]:
-        set = Set[Tuple[int, int]]()
+        occ = set()
         for wall in self.walls:
-            set.add(wall)
+            occ.add(wall)
         for entity in self.entities:
             if entity.collision:
-                set.add(entity.grid_pos)
-        return set
+                occ.add(entity.grid_pos)
+        return occ
 
 class Entity:
     grid_pos: Tuple[int, int]
@@ -39,6 +39,9 @@ class EntityAction:
     def is_valid(self, user: Entity, game: Game) -> bool:
         return True
     @abstractmethod
+    def act(self, user: Entity, game: Game):
+        pass
+class WaitAction:
     def act(self, user: Entity, game: Game):
         pass
 class TeleportAction(EntityAction):
