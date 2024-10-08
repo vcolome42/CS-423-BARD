@@ -1,9 +1,5 @@
-# Example file showing a basic pygame "game loop"
 import pygame as pg
-import asyncio
-import threading
 import speech_recognition as speech
-from speech_recognition.exceptions import WaitTimeoutError
 
 recognizer = speech.Recognizer()
 recognizer.dynamic_energy_threshold = False
