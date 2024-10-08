@@ -1,5 +1,6 @@
 import pygame as pg
 import speech_recognition as speech
+import sprites
 
 recognizer = speech.Recognizer()
 recognizer.dynamic_energy_threshold = False
@@ -16,6 +17,8 @@ text_surf = DEFAULT_FONT.render(text, False, (255, 255, 255))
 screen = pg.display.set_mode((640, 480), pg.RESIZABLE)
 clock = pg.time.Clock()
 running = True
+
+SPRITE_SHEET = sprites.Spritesheet("tiles.png", (4, 4))
 
 def ask_voice(recognizer):
     out = None
@@ -39,8 +42,6 @@ def print_voice():
 print_voice_debounce = False
 
 while running:
-    # poll for events
-    # pygame.QUIT event means the user clicked X to close your window
     for event in pg.event.get():
         if event.type == pg.QUIT:
             running = False
@@ -50,19 +51,18 @@ while running:
                 text_surf = DEFAULT_FONT.render(text, False, (255, 255, 255))
                 print_voice_debounce = True
 
-    # fill the screen with a color to wipe away anything from last frame
     screen.fill("black")
+    # Render steps
     screen.blit(text_surf, (0, 0))
+    screen.blit(SPRITE_SHEET.get_sprite(0), (0, 0))
 
-    # RENDER YOUR GAME HERE
-
-    # flip() the display to put your work on screen
+    # flip buffer to display
     pg.display.flip()
 
     if print_voice_debounce:
         print_voice()
         print_voice_debounce = False
 
-    clock.tick(60)  # limits FPS to 60
+    clock.tick(60)
 
 pg.quit()
