@@ -43,13 +43,13 @@ running = True
 tiles = sprites.Spritesheet("tiles.png", (4, 4))
 game_screen = pg.surface.Surface(SCREEN_SIZE)
 
-def ask_voice(recognizer):
+def ask_voice(recognizer: speech.Recognizer):
     out = None
     with speech.Microphone() as source:
         try:
             recognizer.adjust_for_ambient_noise(source, duration=1)
             print("Rec start.")
-            audio_text = recognizer.listen(source, timeout=1.0)
+            audio_text = recognizer.listen(source, timeout=1.0, phrase_time_limit=5.0)
             print("Rec end.")
             out = recognizer.recognize_google(audio_text)
             print("Text: " + out)
@@ -80,6 +80,23 @@ while running:
         if event.type == pg.QUIT:
             running = False
         if event.type == pg.KEYUP:
+            if event.key == pg.K_DOWN:
+                player = game.controller_entity
+                action = core.MoveAction((0, 1))
+                action.act(player, game)
+            if event.key == pg.K_UP:
+                player = game.controller_entity
+                action = core.MoveAction((0, -1))
+                action.act(player, game)
+            if event.key == pg.K_LEFT:
+                player = game.controller_entity
+                action = core.MoveAction((-1, 0))
+                action.act(player, game)
+            if event.key == pg.K_RIGHT:
+                player = game.controller_entity
+                action = core.MoveAction((1, 0))
+                action.act(player, game)
+
             if event.key == pg.K_SPACE:
                 text = "LISTENING: "
                 text_surf = DEFAULT_FONT.render(text, False, (255, 255, 255))
