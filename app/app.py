@@ -20,6 +20,11 @@ for j in range(0, debug_room_size):
         manhat_dist = delta[0] if delta[0] >= delta[1] else delta[1]
         if manhat_dist >= 4:
             game.walls.add((i, j))
+player = ((core.Entity()
+           .with_grid_pos((debug_room_center, debug_room_center)))
+          .with_sprite_idx(8))
+game.entities.append(player)
+game.controller_entity = player
 
 # pygame setup
 pg.init()
@@ -67,6 +72,8 @@ def render_game(game: core.Game):
         game_screen.blit(tiles.get_sprite(1), grid_to_draw(ground_gridpos))
     for wall_gridpos in game.walls:
         game_screen.blit(tiles.get_sprite(0), grid_to_draw(wall_gridpos))
+    for entity in game.entities:
+        game_screen.blit(tiles.get_sprite(entity.sprite_idx), grid_to_draw(entity.grid_pos))
 
 while running:
     for event in pg.event.get():
