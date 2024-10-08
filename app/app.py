@@ -13,12 +13,14 @@ DEFAULT_FONT = pg.font.SysFont("Arial", 24)
 text = "Hello world"
 text_surf = DEFAULT_FONT.render(text, False, (255, 255, 255))
 
+SCREEN_SIZE = (240, 144)
 
-screen = pg.display.set_mode((640, 480), pg.RESIZABLE)
+screen = pg.display.set_mode((SCREEN_SIZE[0] * 4, SCREEN_SIZE[1] * 4), pg.RESIZABLE)
 clock = pg.time.Clock()
 running = True
 
-SPRITE_SHEET = sprites.Spritesheet("tiles.png", (4, 4))
+tiles = sprites.Spritesheet("tiles.png", (4, 4))
+game_screen = pg.surface.Surface(SCREEN_SIZE)
 
 def ask_voice(recognizer):
     out = None
@@ -51,10 +53,14 @@ while running:
                 text_surf = DEFAULT_FONT.render(text, False, (255, 255, 255))
                 print_voice_debounce = True
 
-    screen.fill("black")
     # Render steps
-    screen.blit(text_surf, (0, 0))
-    screen.blit(SPRITE_SHEET.get_sprite(0), (0, 0))
+    game_screen.fill("black")
+    game_screen.blit(text_surf, (0, 0))
+    game_screen.blit(tiles.get_sprite(0), (0, 0))
+    game_screen.blit(tiles.get_sprite(8), (0, 0))
+
+    screen.fill("black")
+    screen.blit(pg.transform.scale(game_screen, screen.get_rect().size), (0, 0))
 
     # flip buffer to display
     pg.display.flip()
