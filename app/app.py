@@ -4,6 +4,8 @@ import pygame as pg
 import speech_recognition as speech
 import sprites
 import core
+import re
+from commands import commands
 
 recognizer = speech.Recognizer()
 recognizer.dynamic_energy_threshold = False
@@ -20,9 +22,11 @@ for j in range(0, debug_room_size):
         manhat_dist = delta[0] if delta[0] >= delta[1] else delta[1]
         if manhat_dist >= 4:
             game.walls.add((i, j))
-player = (core.Entity()
-          .with_grid_pos((debug_room_center, debug_room_center))
-          .with_sprite_idx(8))
+player = (
+    core.Entity()
+    .with_grid_pos((debug_room_center, debug_room_center))
+    .with_sprite_idx(8)
+)
 game.entities.append(player)
 game.controller_entity = player
 
@@ -40,12 +44,15 @@ text_surf = DEFAULT_FONT.render(text, False, (255, 255, 255))
 SCREEN_SIZE = (240, 144)
 RENDER_SCALE = 2
 
-screen = pg.display.set_mode((SCREEN_SIZE[0] * RENDER_SCALE, SCREEN_SIZE[1] * RENDER_SCALE), pg.RESIZABLE)
+screen = pg.display.set_mode(
+    (SCREEN_SIZE[0] * RENDER_SCALE, SCREEN_SIZE[1] * RENDER_SCALE), pg.RESIZABLE
+)
 clock = pg.time.Clock()
 running = True
 
 tiles = sprites.Spritesheet("tiles.png", (4, 4))
 game_screen = pg.surface.Surface(SCREEN_SIZE)
+
 
 def ask_voice(recognizer: speech.Recognizer):
     out = None
@@ -60,27 +67,87 @@ def ask_voice(recognizer: speech.Recognizer):
         except Exception as e:
             print("Sorry, I did not get that:", e)
     return out
+
+
 def print_voice():
     global text_surf
     data = ask_voice(recognizer)
     text = f"Voice: { "\"{}\"".format(data) if data is not None else "None"}"
     text_surf = DEFAULT_FONT.render(text, False, (255, 255, 255))
+
+
 def decide_voice():
     global text_surf
     data = ask_voice(recognizer)
     text = f"Voice: { "\"{}\"".format(data) if data is not None else "None"}"
     text_surf = DEFAULT_FONT.render(text, False, (255, 255, 255))
-    if data == "move left":
-        player_decide(core.MoveAction((-1, 0)))
+    if data:
+        parse_and_execute_command(data)
+    else:
+        print("Command not recognized.")
+        text_surf = DEFAULT_FONT.render("Command not recognized.", False, (255, 0, 0))
+
+# Word to int (three -> 3)
+def word_to_num(word: str) -> int:
+    word_to_number = {
+        "one": 1,
+        "two": 2,
+        "three": 3,
+        "four": 4,
+        "five": 5,
+        "six": 6,
+        "seven": 7,
+        "eight": 8,
+        "nine": 9,
+        "ten": 10,
+    }
+    return word_to_number.get(word.lower(), None)
+
+# parse and execute different commands
+def parse_and_execute_command(command: str):
+    move_pattern = re.match(
+        r"move (left|right|up|down) (\d+|one|two|three|four|five|six|seven|eight|nine|ten) times",
+        command,
+    )
+    if move_pattern:
+        direction = move_pattern.group(1)
+        x = move_pattern.group(2)
+        if x.isdigit():
+            x = int(x)
+        else:
+            x = word_to_num(x)
+        if x is not None:
+            if direction == "left":
+                action = core.MoveAction((-x, 0))
+            elif direction == "right":
+                action = core.MoveAction((x, 0))
+            elif direction == "up":
+                action = core.MoveAction((0, -x))
+            elif direction == "down":
+                action = core.MoveAction((0, x))
+            player_decide(action)
+        else:
+            print("Invalid number.")
+            text_surf = DEFAULT_FONT.render("Invalid number.", False, (255, 0, 0))
+    elif command in commands:
+        player_decide(commands[command])
+    else:
+        print("Command not recognized.")
+        text_surf = DEFAULT_FONT.render("Command not recognized.", False, (255, 0, 0))
+
+
 decide_voice_debounce = False
+
 
 def player_decide(action: core.EntityAction):
     player = game.controller_entity
     if action.is_valid(player, game):
         action.act(player, game)
 
+
 def grid_to_draw(gridpos: Tuple[int, int]) -> Tuple[int, int]:
     return (gridpos[0] * 16, gridpos[1] * 16)
+
 
 def render_game(game: core.Game):
     for ground_gridpos in game.ground:
@@ -88,7 +155,10 @@ def render_game(game: core.Game):
     for wall_gridpos in game.walls:
         game_screen.blit(tiles.get_sprite(0), grid_to_draw(wall_gridpos))
     for entity in game.entities:
-        game_screen.blit(tiles.get_sprite(entity.sprite_idx), grid_to_draw(entity.grid_pos))
+        game_screen.blit(
+            tiles.get_sprite(entity.sprite_idx), grid_to_draw(entity.grid_pos)
+        )
+
 
 while running:
     for event in pg.event.get():
