@@ -108,3 +108,15 @@ class MoveAction(EntityAction):
     def act(self, user: Entity, game: Game):
         target_pos = user.grid_pos[0] + self.delta_pos[0], user.grid_pos[1] + self.delta_pos[1]
         user.grid_pos = target_pos
+
+# Moves character up,down,right,right until a obstacle
+class MoveUntilObstacleAction(EntityAction):
+    def __init__(self, direction: Tuple[int, int]):
+        self.direction = direction
+
+    def act(self, user: Entity, game: Game):
+        while True:
+            target_pos = (user.grid_pos[0] + self.direction[0], user.grid_pos[1] + self.direction[1])
+            if target_pos in game.create_occlusion_set():
+                break
+            user.grid_pos = target_pos
