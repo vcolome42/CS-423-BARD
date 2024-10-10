@@ -13,7 +13,7 @@ recognizer = speech.Recognizer()
 recognizer.dynamic_energy_threshold = False
 
 game = core.Game()
-generate(game, 4, (20, 20))
+generate(game, 4, (32, 32))
 player = (
     core.Entity()
     .with_grid_pos((5, 5))
@@ -152,19 +152,26 @@ def player_decide(action: core.EntityAction):
     if action.is_valid(player, game):
         action.act(player, game)
 
-
 def grid_to_draw(gridpos: Tuple[int, int]) -> Tuple[int, int]:
     return (gridpos[0] * 16, gridpos[1] * 16)
-
+def view_grid_to_draw(gridpos: Tuple[int, int], view_pos: Tuple[int, int]) -> Tuple[int, int]:
+    x = (gridpos[0] - view_pos[0]) * 16
+    y = (gridpos[1] - view_pos[1]) * 16
+    x += SCREEN_SIZE[0] / 2
+    y += SCREEN_SIZE[1] / 2
+    return (x, y)
 
 def render_game(game: core.Game):
+    local_pos = (0, 0)
+    if game.controller_entity:
+        local_pos = game.controller_entity.grid_pos
     for ground_gridpos in game.ground:
-        game_screen.blit(tiles.get_sprite(1), grid_to_draw(ground_gridpos))
+        game_screen.blit(tiles.get_sprite(1), view_grid_to_draw(ground_gridpos, local_pos))
     for wall_gridpos in game.walls:
-        game_screen.blit(tiles.get_sprite(0), grid_to_draw(wall_gridpos))
+        game_screen.blit(tiles.get_sprite(0), view_grid_to_draw(wall_gridpos, local_pos))
     for entity in game.entities:
         game_screen.blit(
-            tiles.get_sprite(entity.sprite_idx), grid_to_draw(entity.grid_pos)
+            tiles.get_sprite(entity.sprite_idx), view_grid_to_draw(entity.grid_pos, local_pos)
         )
 
 
