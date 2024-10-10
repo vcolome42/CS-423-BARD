@@ -1,5 +1,7 @@
 from abc import abstractmethod
 from typing import Tuple, Set
+from items import *
+
 
 class Game:
     ground: Set[Tuple[int, int]]
@@ -77,6 +79,13 @@ class Door(Entity):
     def get_flags(self) -> Set[str]:
         return super().get_flags().union({
             "opened" if self.opened else "closed"
+        })
+
+class ItemEntity(Entity):
+    item: Item
+    def get_synonym_list(self) -> Set[str]:
+        return super().get_synonym_list().union({
+            "item",
         })
 
 class EntityAction:
