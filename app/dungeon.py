@@ -100,8 +100,8 @@ def generate(game: Game, depth: int, size: Tuple[int, int]):
             else:
                 line += " "
         test += line + "\n"
-    print("dungeon")
-    print(test)
+    # print("dungeon")
+    # print(test)
 
 def print_rec(node: BspNode, depth:int = 0):
     print(depth, "\t" * depth, node.bounds.pos, node.bounds.size)
