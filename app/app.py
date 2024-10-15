@@ -80,14 +80,14 @@ def ask_voice(recognizer: speech.Recognizer):
 def print_voice():
     global text_surf
     data = ask_voice(recognizer)
-    text = f"Voice: { "\"{}\"".format(data) if data is not None else "None"}"
+    text = f"Voice: {data}" if data else "Voice: No words recognized"
     text_surf = DEFAULT_FONT.render(text, False, (255, 255, 255))
 
 
 def decide_voice():
     global text_surf
     data = ask_voice(recognizer)
-    text = f"Voice: { "\"{}\"".format(data) if data is not None else "None"}"
+    text = f"Voice: {data}" if data else "Voice: No words recognized"
     text_surf = DEFAULT_FONT.render(text, False, (255, 255, 255))
     if data:
         parse_and_execute_command(data)
@@ -117,6 +117,7 @@ def parse_and_execute_command(command: str):
         r".*(left|right|up|down) (\d+|one|two|three|four|five|six|seven|eight|nine|ten) times",
         command,
     )
+    commandFound = False
     if move_pattern:
         direction = move_pattern.group(1)
         x = move_pattern.group(2)
@@ -134,12 +135,18 @@ def parse_and_execute_command(command: str):
             elif direction == "down":
                 action = core.MoveAction((0, x))
             player_decide(action)
+            commandFound = True
         else:
             print("Invalid number.")
             text_surf = DEFAULT_FONT.render("Invalid number.", False, (255, 0, 0))
-    elif command in commands:
-        player_decide(commands[command])
     else:
+        for commandKeys in commands:
+            print(f"if {command} in {commandKeys}")
+            if commandKeys in command:
+                player_decide(commands[commandKeys])
+                commandFound = True
+
+    if not commandFound:
         print("Command not recognized.")
         text_surf = DEFAULT_FONT.render("Command not recognized.", False, (255, 0, 0))
 
