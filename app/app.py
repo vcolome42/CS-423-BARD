@@ -141,7 +141,6 @@ def parse_and_execute_command(command: str):
             text_surf = DEFAULT_FONT.render("Invalid number.", False, (255, 0, 0))
     else:
         for commandKeys in commands:
-            print(f"if {command} in {commandKeys}")
             if commandKeys in command:
                 player_decide(commands[commandKeys])
                 commandFound = True
