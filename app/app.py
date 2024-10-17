@@ -97,9 +97,10 @@ def word_to_num(word: str) -> int:
 def parse_and_execute_command(command: str):
     global text_surf
     move_pattern = re.match(
-        r".*(left|right|up|down) (\d+|one|two|three|four|five|six|seven|eight|nine|ten) times",
+        r".*(left|right|up|down) (\d+|one|two|three|four|five|six|seven|eight|nine|ten)",
         command,
     )
+    commandFound = False
     if move_pattern:
         direction = move_pattern.group(1)
         x = move_pattern.group(2)
@@ -117,12 +118,16 @@ def parse_and_execute_command(command: str):
             elif direction == "down":
                 action = core.MoveAction((0, x))
             player_decide(action)
+            commandFound = True
         else:
             print("Invalid number.")
             text_surf = DEFAULT_FONT.render("Invalid number.", False, (255, 0, 0))
-    elif command in commands:
-        player_decide(commands[command])
-    else:
+
+    for commandKeys in commands:
+            if commandKeys in command:
+                player_decide(commands[commandKeys])
+                commandFound = True
+    if not commandFound:
         print("Command not recognized.")
         text_surf = DEFAULT_FONT.render("Command not recognized.", False, (255, 0, 0))
 
@@ -180,7 +185,7 @@ def on_listener_heard(recognizer: speech.Recognizer, data: speech.AudioData):
     global text_surf
     print("heard something")
     vc_command = recognize_data(recognizer, data)
-    text = f"Voice: {"\"{}\"".format(vc_command) if vc_command is not None else "None"}"
+    text = f"Voice: {vc_command}" if vc_command else "Voice: No words recognized."
     text_surf = DEFAULT_FONT.render(text, False, (255, 255, 255))
     if vc_command:
         parse_and_execute_command(vc_command)
