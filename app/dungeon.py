@@ -1,5 +1,4 @@
 from random import randint, choice, random, randrange
-import random as randomFix  # something weird going on with rando
 from core import *
 import core
 
