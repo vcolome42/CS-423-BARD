@@ -74,7 +74,7 @@ game_screen = pg.surface.Surface(SCREEN_SIZE)
 # def print_voice():
 #     global text_surf
 #     data = ask_voice(recognizer)
-#     text = f"Voice: { "\"{}\"".format(data) if data is not None else "None"}"
+#     text = f"Voice: {data}" if data else "Voice: No words recognized"
 #     text_surf = DEFAULT_FONT.render(text, False, (255, 255, 255))
 
 # Word to int (three -> 3)
@@ -122,11 +122,12 @@ def parse_and_execute_command(command: str):
         else:
             print("Invalid number.")
             text_surf = DEFAULT_FONT.render("Invalid number.", False, (255, 0, 0))
-
-    for commandKeys in commands:
+    else:
+        for commandKeys in commands:
             if commandKeys in command:
                 player_decide(commands[commandKeys])
                 commandFound = True
+
     if not commandFound:
         print("Command not recognized.")
         text_surf = DEFAULT_FONT.render("Command not recognized.", False, (255, 0, 0))
