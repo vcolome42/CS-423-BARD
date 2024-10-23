@@ -88,6 +88,26 @@ class ItemEntity(Entity):
             "item",
         })
 
+
+class Slime(Entity):
+    def __init__(self):
+        super().__init__()
+        self.sprite_idx = 9
+        self.collision = True
+
+    def get_synonym_list(self) -> Set[str]:
+        return super().get_synonym_list().union({"slime"})
+
+class Skeleton(Entity):
+    def __init__(self):
+        super().__init__()
+        self.sprite_idx = 13
+        self.collision = True
+
+    def get_synonym_list(self) -> Set[str]:
+        return super().get_synonym_list().union({"skeleton"})
+
+
 class EntityAction:
     def is_valid(self, user: Entity, game: Game) -> bool:
         return True

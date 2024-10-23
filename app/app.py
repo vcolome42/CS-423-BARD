@@ -1,3 +1,4 @@
+from enum import global_enum
 from typing import Tuple
 
 import pygame as pg
@@ -8,9 +9,6 @@ import re
 
 from dungeon import generate
 from commands import commands
-
-recognizer = speech.Recognizer()
-recognizer.dynamic_energy_threshold = False
 
 game = core.Game()
 generate(game, 4, (32, 32))
@@ -46,8 +44,7 @@ pg.init()
 pg.font.init()
 
 DEFAULT_FONT = pg.font.SysFont("Arial", 24)
-text = "Hello world"
-text_surf = DEFAULT_FONT.render(text, False, (255, 255, 255))
+text_surf = DEFAULT_FONT.render("", False, (255, 255, 255))
 
 SCREEN_SIZE = (240, 144)
 RENDER_SCALE = 2
@@ -56,44 +53,29 @@ screen = pg.display.set_mode(
     (SCREEN_SIZE[0] * RENDER_SCALE, SCREEN_SIZE[1] * RENDER_SCALE), pg.RESIZABLE
 )
 clock = pg.time.Clock()
-running = True
 
 tiles = sprites.Spritesheet("tiles.png", (4, 4))
 game_screen = pg.surface.Surface(SCREEN_SIZE)
 
-
-def ask_voice(recognizer: speech.Recognizer):
-    out = None
-    with speech.Microphone() as source:
-        try:
-            recognizer.adjust_for_ambient_noise(source, duration=0.3)
-            print("Rec start.")
-            audio_text = recognizer.listen(source, timeout=3.0, phrase_time_limit=5.0)
-            print("Rec end.")
-            out = recognizer.recognize_google(audio_text).lower()
-            print("Text: " + out)
-        except Exception as e:
-            print("Sorry, I did not get that:", e)
-    return out
-
-
-def print_voice():
-    global text_surf
-    data = ask_voice(recognizer)
-    text = f"Voice: {data}" if data else "Voice: No words recognized"
-    text_surf = DEFAULT_FONT.render(text, False, (255, 255, 255))
-
-
-def decide_voice():
-    global text_surf
-    data = ask_voice(recognizer)
-    text = f"Voice: {data}" if data else "Voice: No words recognized"
-    text_surf = DEFAULT_FONT.render(text, False, (255, 255, 255))
-    if data:
-        parse_and_execute_command(data)
-    else:
-        print("Command not recognized.")
-        text_surf = DEFAULT_FONT.render("Command not recognized.", False, (255, 0, 0))
+# Manual ask_voice system.
+# def ask_voice(recognizer: speech.Recognizer):
+#     out = None
+#     with speech.Microphone() as source:
+#         try:
+#             recognizer.adjust_for_ambient_noise(source, duration=0.3)
+#             print("Rec start.")
+#             audio_text = recognizer.listen(source, timeout=3.0, phrase_time_limit=5.0)
+#             print("Rec end.")
+#             out = recognizer.recognize_google(audio_text).lower()
+#             print("Text: " + out)
+#         except Exception as e:
+#             print("Sorry, I did not get that:", e)
+#     return out
+# def print_voice():
+#     global text_surf
+#     data = ask_voice(recognizer)
+#     text = f"Voice: {data}" if data else "Voice: No words recognized"
+#     text_surf = DEFAULT_FONT.render(text, False, (255, 255, 255))
 
 # Word to int (three -> 3)
 def word_to_num(word: str) -> int:
@@ -113,8 +95,9 @@ def word_to_num(word: str) -> int:
 
 # parse and execute different commands
 def parse_and_execute_command(command: str):
+    global text_surf
     move_pattern = re.match(
-        r".*(left|right|up|down) (\d+|one|two|three|four|five|six|seven|eight|nine|ten) times",
+        r".*(left|right|up|down) (\d+|one|two|three|four|five|six|seven|eight|nine|ten)",
         command,
     )
     commandFound = False
@@ -149,9 +132,7 @@ def parse_and_execute_command(command: str):
         print("Command not recognized.")
         text_surf = DEFAULT_FONT.render("Command not recognized.", False, (255, 0, 0))
 
-
-decide_voice_debounce = False
-
+# decide_voice_debounce = False
 
 def player_decide(action: core.EntityAction):
     player = game.controller_entity
@@ -180,41 +161,88 @@ def render_game(game: core.Game):
             tiles.get_sprite(entity.sprite_idx), view_grid_to_draw(entity.grid_pos, local_pos)
         )
 
+# def decide_voice():
+#     global text_surf
+#     data = ask_voice(recognizer)
+#     text = f"Voice: { "\"{}\"".format(data) if data is not None else "None"}"
+#     text_surf = DEFAULT_FONT.render(text, False, (255, 255, 255))
+#     if data:
+#         parse_and_execute_command(data)
+#     else:
+#         print("Command not recognized.")
+#         text_surf = DEFAULT_FONT.render("Command not recognized.", False, (255, 0, 0))
 
-while running:
-    for event in pg.event.get():
-        if event.type == pg.QUIT:
-            running = False
-        if event.type == pg.KEYUP:
-            if event.key == pg.K_DOWN:
-                player_decide(core.MoveAction((0, 1)))
-            if event.key == pg.K_UP:
-                player_decide(core.MoveAction((0, -1)))
-            if event.key == pg.K_LEFT:
-                player_decide(core.MoveAction((-1, 0)))
-            if event.key == pg.K_RIGHT:
-                player_decide(core.MoveAction((1, 0)))
+def recognize_data(recognizer: speech.Recognizer, data: speech.AudioData) -> None | str:
+    out = None
+    try:
+        out = recognizer.recognize_google(data)
+        print(out)
+        # out = recognizer.recognize_sphinx(data)
+    except Exception as e:
+        print("Listener error:", e)
+    return out
 
-            if event.key == pg.K_SPACE:
-                text = "LISTENING: "
-                text_surf = DEFAULT_FONT.render(text, False, (255, 255, 255))
-                decide_voice_debounce = True
+def on_listener_heard(recognizer: speech.Recognizer, data: speech.AudioData):
+    global text_surf
+    print("heard something")
+    vc_command = recognize_data(recognizer, data)
+    text = f"Voice: {vc_command}" if vc_command else "Voice: No words recognized."
+    text_surf = DEFAULT_FONT.render(text, False, (255, 255, 255))
+    if vc_command:
+        parse_and_execute_command(vc_command)
+    else:
+        print("Command not recognized.")
+        text_surf = DEFAULT_FONT.render("Command not recognized.", False, (255, 0, 0))
 
-    # Render steps
-    game_screen.fill("black")
-    render_game(game)
+RECOGNIZER = speech.Recognizer()
+RECOGNIZER.dynamic_energy_threshold = False
+MIC = speech.Microphone()
+with MIC as source:
+    print("Adjusting mic noise threshold.")
+    RECOGNIZER.adjust_for_ambient_noise(source, 1.0)
 
-    screen.fill("black")
-    screen.blit(pg.transform.scale(game_screen, screen.get_rect().size), (0, 0))
-    screen.blit(text_surf, (0, 0))
+stop_listener = RECOGNIZER.listen_in_background(MIC, on_listener_heard)
 
-    # flip buffer to display
-    pg.display.flip()
+def main_loop():
+    running = True
+    while running:
+        for event in pg.event.get():
+            if event.type == pg.QUIT:
+                running = False
+            if event.type == pg.KEYUP:
+                if event.key == pg.K_DOWN:
+                    player_decide(core.MoveAction((0, 1)))
+                if event.key == pg.K_UP:
+                    player_decide(core.MoveAction((0, -1)))
+                if event.key == pg.K_LEFT:
+                    player_decide(core.MoveAction((-1, 0)))
+                if event.key == pg.K_RIGHT:
+                    player_decide(core.MoveAction((1, 0)))
 
-    if decide_voice_debounce:
-        decide_voice()
-        decide_voice_debounce = False
+                # if event.key == pg.K_SPACE:
+                #     text = "LISTENING: "
+                #     text_surf = DEFAULT_FONT.render(text, False, (255, 255, 255))
+                #     decide_voice_debounce = True
 
-    clock.tick(60)
+        # Render steps
+        game_screen.fill("black")
+        render_game(game)
 
+        screen.fill("black")
+        screen.blit(pg.transform.scale(game_screen, screen.get_rect().size), (0, 0))
+        screen.blit(text_surf, (0, 0))
+
+        # flip buffer to display
+        pg.display.flip()
+
+        # if decide_voice_debounce:
+        #     decide_voice()
+        #     decide_voice_debounce = False
+
+        clock.tick(60)
+try:
+    main_loop()
+except Exception as e:
+    print(f"Game crashed: {e}")
 pg.quit()
+stop_listener(False)

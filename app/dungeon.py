@@ -1,6 +1,6 @@
-from random import randint, random, randrange
-
+from random import randint, choice, random, randrange
 from core import *
+import core
 
 MIN_BOUNDS_SIZE = 6
 SPLIT_RANGE = (0.4, 0.6)
@@ -76,17 +76,94 @@ def split_rect(container: Rect, split_dir: int) -> Tuple[Rect, Rect]:
         )
         return a, b
 
+def valid_position(x, y, map, game):
+    if map[y][x] != 1:
+        return False
+    for entity in game.entities:
+        if entity.grid_pos == (x, y):
+            return False
+    return True
+
+def paint_node(node: BspNode, map: list[list[int]], game: Game):
+    if node.children:
+        for child in node.children:
+            paint_node(child, map, game)
+        return
+    
+    room_width = randint(MIN_ROOM_SIZE, node.bounds.width() - MIN_PADDING * 2)
+    room_height = randint(MIN_ROOM_SIZE, node.bounds.height() - MIN_PADDING * 2)
+    inner = Rect(
+        (node.bounds.pos[0] + MIN_PADDING, node.bounds.pos[1] + MIN_PADDING),
+        (room_width, room_height),
+    )
+
+    for y in range(node.bounds.y(), node.bounds.end()[1]):
+        for x in range(node.bounds.x(), node.bounds.end()[0]):
+            map[y][x] = 2
+
+    for y in range(inner.pos[1], inner.end()[1]):
+        for x in range(inner.pos[0], inner.end()[0]):
+            map[y][x] = 1
+
+    # Generate 0-2 NPCs randomly
+    num_npcs = randint(0, 2)
+    npc_classes = [Slime, Skeleton]
+    for _ in range(num_npcs):
+        npc_class = choice(npc_classes)
+        npc = npc_class()
+        while True:
+            npc_pos = (randint(inner.pos[0], inner.end()[0] - 1), randint(inner.pos[1], inner.end()[1] - 1))
+            if valid_position(npc_pos[0], npc_pos[1], map, game):
+                npc.with_grid_pos(npc_pos)
+                game.entities.append(npc)
+                break
+
+def paint_corridors(node: BspNode, map: list[list[int]]):
+    if node.children:
+        a: BspNode = node.children[0]
+        b: BspNode = node.children[1]
+        if a.split_dir == 0:  # x split
+            center_x = int(a.bounds.pos[0] + a.bounds.size[0] / 2)
+            center_a_y = int(a.bounds.pos[1] + a.bounds.size[1] / 2)
+            center_b_y = int(b.bounds.pos[1] + b.bounds.size[1] / 2)
+            for i in range(center_a_y, center_b_y):
+                print(center_x, i)
+                map[i][center_x] = 1
+        else:
+            center_y = int(a.bounds.pos[1] + a.bounds.size[1] / 2)
+            center_a_x = int(a.bounds.pos[0] + a.bounds.size[0] / 2)
+            center_b_x = int(b.bounds.pos[0] + b.bounds.size[0] / 2)
+            for i in range(center_a_x, center_b_x):
+                print(i, center_y)
+                map[center_y][i] = 1
+        for child_node in node.children:
+            paint_corridors(child_node, map)
+
+def add_doors(game: Game, map: list[list[int]], num_doors: int):
+    door_count = 0
+    while door_count < num_doors:
+        x, y = randint(0, len(map[0]) - 1), randint(0, len(map) - 1)
+        if valid_position(x, y, map, game):
+            door = core.Door().with_grid_pos((x, y))
+            game.entities.append(door)
+            door_count += 1
+
+def print_rec(node: BspNode, depth:int = 0):
+    print(depth, "\t" * depth, node.bounds.pos, node.bounds.size)
+    for i in node.children:
+        print_rec(i, depth + 1)
+
 def generate(game: Game, depth: int, size: Tuple[int, int]):
     width = size[0]
     height = size[1]
-
     map = [[0 for x in range(width)] for y in range(height)]
     split_dir = randint(0, 1)
     root_node = BspNode(Rect((0, 0), size), split_dir)
     root_node.split(depth)
     print_rec(root_node, 0)
-    paint_node(root_node, map)
+    paint_node(root_node, map, game)
     paint_corridors(root_node, map)
+    add_doors(game, map, randint(1, 3))
     test = ""
     for y in range(height):
         line = ""
@@ -100,51 +177,4 @@ def generate(game: Game, depth: int, size: Tuple[int, int]):
             else:
                 line += " "
         test += line + "\n"
-    print("dungeon")
-    print(test)
-
-def print_rec(node: BspNode, depth:int = 0):
-    print(depth, "\t" * depth, node.bounds.pos, node.bounds.size)
-    for i in node.children:
-        print_rec(i, depth + 1)
-
-def paint_node(node: BspNode, map: list[list[int]]):
-    if node.children:
-        for child in node.children:
-            paint_node(child, map)
-        return
-    room_width = randint(MIN_ROOM_SIZE, node.bounds.width() - MIN_PADDING * 2)
-    room_height = randint(MIN_ROOM_SIZE, node.bounds.height() - MIN_PADDING * 2)
-    inner = Rect(
-        (node.bounds.pos[0] + MIN_PADDING, node.bounds.pos[1] + MIN_PADDING),
-        (room_width, room_height),
-    )
-    for y in range(node.bounds.y(), node.bounds.end()[1]):
-        for x in range(node.bounds.x(), node.bounds.end()[0]):
-            map[y][x] = 2
-    for y in range(inner.pos[1], inner.end()[1]):
-        for x in range(inner.pos[0], inner.end()[0]):
-            map[y][x] = 1
-
-def paint_corridors(node: BspNode, map: list[list[int]]):
-    if node.children:
-        a: BspNode = node.children[0]
-        b: BspNode = node.children[1]
-        if a.split_dir == 0: # x split
-            center_x = int(a.bounds.pos[0] + a.bounds.size[0] / 2)
-
-            center_a_y = int(a.bounds.pos[1] + a.bounds.size[1] / 2)
-            center_b_y = int(b.bounds.pos[1] + b.bounds.size[1] / 2)
-            for i in range(center_a_y, center_b_y):
-                print(center_x, i)
-                map[i][center_x] = 1
-        else:
-            center_y = int(a.bounds.pos[1] + a.bounds.size[1] / 2)
-
-            center_a_x = int(a.bounds.pos[0] + a.bounds.size[0] / 2)
-            center_b_x = int(b.bounds.pos[0] + b.bounds.size[0] / 2)
-            for i in range(center_a_x, center_b_x):
-                print(i, center_y)
-                map[center_y][i] = 1
-        for child_node in node.children:
-            paint_corridors(child_node, map)
+    # print("dungeon")
