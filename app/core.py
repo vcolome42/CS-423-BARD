@@ -38,9 +38,11 @@ class Game:
         return {
             "entities": [
                 {
+                    "_type": type(entity),
                     "synonyms": entity.get_synonym_list(),
                     "flags": entity.get_flags(),
-                } for entity in self.entities
+                    "appearance": entity.get_appearance(self.controller_entity) if self.controller_entity else None,
+                } for entity in [e for e in self.entities if e != self.controller_entity]
             ]
         }
 
@@ -67,6 +69,26 @@ class Entity:
         return set()
     def get_flags(self) -> Set[str]:
         return set()
+    def get_appearance(self, viewer: 'Entity') -> Set[str]:
+        appearance = set()
+        dist = (self.grid_pos[0] - viewer.grid_pos[0], self.grid_pos[1] - viewer.grid_pos[1])
+        if dist[0] > 1:
+            appearance.add("to the right")
+            appearance.add("in the right")
+            appearance.add("right")
+        if dist[0] < -1:
+            appearance.add("to the left")
+            appearance.add("in the left")
+            appearance.add("left")
+        if dist[1] > 1:
+            appearance.add("in the bottom")
+            appearance.add("below")
+        if dist[1] < -1:
+            appearance.add("at the top")
+            appearance.add("above")
+        if abs(dist[0]) <= 1 and abs(dist[1]) <= 1:
+            appearance.add("nearby")
+        return appearance
 
     def destroy(self):
         self.destroyed = True
@@ -193,12 +215,22 @@ class Slime(Character):
         super().__init__(game, health=20, attack_damage=5)
         self.sprite_idx = 9
         self.collision = True
+    def get_synonym_list(self) -> Set[str]:
+        return super().get_synonym_list().union({
+            "slime",
+            "enemy",
+        })
 
 class Skeleton(Character):
     def __init__(self, game: Game):
         super().__init__(game, health=30, attack_damage=7)
         self.sprite_idx = 13
         self.collision = True
+    def get_synonym_list(self) -> Set[str]:
+        return super().get_synonym_list().union({
+            "skeleton",
+            "enemy",
+        })
 
 class EntityAction:
     def is_valid(self, user: Entity, game: Game) -> bool:
@@ -304,11 +336,11 @@ class InteractAction(EntityAction):
     target: Entity
     def __init__(self, target: Entity):
         self.target = target
+    def are_positions_adjacent(self, pos1: Tuple[int, int], pos2: Tuple[int, int]) -> bool:
+        dx = abs(pos1[0] - pos2[0])
+        dy = abs(pos1[1] - pos2[1])
+        return dx <= 1 and dy <= 1
+    def is_valid(self, user: Entity, game: Game) -> bool:
+        return self.target.can_interact() and self.are_positions_adjacent(user.grid_pos, self.target.grid_pos)
     def act(self, user: Character, game: Game):
-        # find nearby enemies
-        for entity in game.entities:
-            if isinstance(entity, Character) and entity != user:
-                if abs(user.grid_pos[0] - entity.grid_pos[0]) <= 1 and abs(user.grid_pos[1] - entity.grid_pos[1]) <= 1:
-                    user.attack(entity)
-                    print(f"{user} attacked {entity}")
-                    break
+        self.target.interact(user)

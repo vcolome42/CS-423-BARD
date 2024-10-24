@@ -267,6 +267,8 @@ def main_loop():
                     if event.key == pg.K_0:
                         if player:
                             player.add_to_inventory(items.KeyItem())
+                    if event.key == pg.K_1:
+                        print(game.create_description())
                 # if event.key == pg.K_SPACE:
                 #     text = "LISTENING: "
                 #     text_surf = DEFAULT_FONT.render(text, False, (255, 255, 255))
