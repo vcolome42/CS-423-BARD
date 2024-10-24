@@ -344,3 +344,30 @@ class InteractAction(EntityAction):
         return self.target.can_interact() and self.are_positions_adjacent(user.grid_pos, self.target.grid_pos)
     def act(self, user: Character, game: Game):
         self.target.interact(user)
+
+class InteractEverything(EntityAction):
+    def are_positions_adjacent(self, pos1: Tuple[int, int], pos2: Tuple[int, int]) -> bool:
+        dx = abs(pos1[0] - pos2[0])
+        dy = abs(pos1[1] - pos2[1])
+        return (dx <= 1 and dy <= 1)
+    def is_valid(self, user: Entity, game: Game) -> bool:
+        nearby = []
+        for entity in game.entities:
+            if self.are_positions_adjacent(user.grid_pos, entity.grid_pos):
+                if entity.can_interact():
+                    nearby.append(entity)
+        if nearby:
+            return True
+        return False
+    def act(self, user: Entity, game: Game):
+        nearby = []
+        for entity in game.entities:
+            if self.are_positions_adjacent(user.grid_pos, entity.grid_pos):
+                if entity.can_interact():
+                    nearby.append(entity)
+        if nearby:
+            for entity in nearby:
+                entity.interact(user)
+                print(f"Interacted with {entity.get_synonym_list()}.")
+        else:
+            print("No nearby interactables.")

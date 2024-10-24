@@ -1,4 +1,4 @@
-from core import MoveAction, WaitAction, TeleportAction, MoveUntilObstacleAction, AttackAction, PickUpAction, OpenInventoryAction, CloseInventoryAction, UseItemAction
+from core import MoveAction, WaitAction, TeleportAction, MoveUntilObstacleAction, AttackAction, PickUpAction, OpenInventoryAction, CloseInventoryAction, UseItemAction, InteractEverything
 
 # keyword commands in different file to add an extensive list
 commands = {
@@ -81,6 +81,10 @@ commands = {
     "take": PickUpAction(),
     "grab": PickUpAction(),
     "collect": PickUpAction(),
+
+    # Interaction
+    "interact": InteractEverything(),
+    "touch": InteractEverything(),
 
     # Open inventory
     "open inventory": OpenInventoryAction(),

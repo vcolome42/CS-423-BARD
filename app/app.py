@@ -119,6 +119,8 @@ def player_decide(action: core.EntityAction):
     else:
         if isinstance(action, core.PickUpAction):
             text_surf = DEFAULT_FONT.render("No items nearby to pick up.", False, (255, 0, 0))
+        elif isinstance(action, core.InteractEverything):
+            text_surf = DEFAULT_FONT.render("No interactables.", False, (255, 0, 0))
         else:
             text_surf = DEFAULT_FONT.render("Action is not valid.", False, (255, 0, 0))
 
@@ -263,6 +265,8 @@ def main_loop():
                         player_decide(core.CloseInventoryAction())
                     else:
                         player_decide(core.OpenInventoryAction())
+                if event.key == pg.K_e:
+                    player_decide(core.InteractEverything())
                 if CHEATS:
                     if event.key == pg.K_0:
                         if player:
