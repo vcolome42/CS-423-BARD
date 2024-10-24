@@ -30,10 +30,11 @@ class Rect:
         return (self.pos[0] + self.size[0], self.pos[1] + self.size[1])
 
 class BspNode:
-    def __init__(self, bounds: Rect, split_dir: int):
+    def __init__(self, bounds: Rect, split_dir: int, parent):
         self.bounds = bounds
         self.children = []
         self.split_dir = split_dir
+        self.parent = parent
     def split(self, depth: int):
         # print("split ", depth)
         if depth == 0:
@@ -44,8 +45,8 @@ class BspNode:
         if a.width() >= MIN_BOUNDS_SIZE and a.height() >= MIN_BOUNDS_SIZE\
             and b.width() >= MIN_BOUNDS_SIZE and b.height() >= MIN_BOUNDS_SIZE:
             new_split = 1 if self.split_dir == 0 else 0
-            self.children.append(BspNode(a, new_split))
-            self.children.append(BspNode(b, new_split))
+            self.children.append(BspNode(a, new_split, self))
+            self.children.append(BspNode(b, new_split, self))
             for child in self.children:
                 child.split(depth - 1)
 
@@ -157,11 +158,12 @@ def paint_corridors(node: BspNode, map: list[list[int]]):
         for child_node in node.children:
             paint_corridors(child_node, map)
 
-def place_npcs(node: BspNode, game: Game):
+def place_npcs(node: BspNode, game: Game, rooms: list[BspNode]):
     if node.children:
         for child in node.children:
-            place_npcs(child, game)
+            place_npcs(child, game, rooms)
         return
+    rooms.append(node)
 
 NEIGHBOR_INDICES = [
     (-1, -1),
@@ -178,11 +180,6 @@ def neighbor_idx_dist(a: int, b: int):
         return min(b - a, 7 - (b - a - 1))
     else:
         return min(a - b, 7 - (a - b - 1))
-# https://stackoverflow.com/a/5764807
-def pairwise(iterable):
-    a, b = itertools.tee(iterable)
-    next(b, None)
-    return zip(a, b)
 def add_doors(game: Game, map: list[list[int]]):
     map_y = len(map)
     map_x = len(map[0])
@@ -277,18 +274,46 @@ def print_rec(node: BspNode, depth:int = 0):
     for i in node.children:
         print_rec(i, depth + 1)
 
+# Picks a room that the player can access and is not locked.
+def pick_key_room(player_room: BspNode, end_room: BspNode):
+    p_next = player_room.parent
+    p_pred = player_room
+    e_next = end_room.parent
+    e_pred = end_room
+    while p_next != e_next and (p_next is not None and e_next is not None):
+        p_pred = p_next
+        e_pred = e_next
+
+        p_next = p_next.parent
+        e_next = e_next.parent
+    top_valid = p_pred
+    valid_rooms = []
+    _pick_key_room_rec(top_valid, valid_rooms)
+    return random.choice(valid_rooms)
+
+def _pick_key_room_rec(node: BspNode, room_list: list[BspNode]):
+    if node.children:
+        for child in node.children:
+            _pick_key_room_rec(child, room_list)
+        return
+    room_list.append(node)
+
+
 def generate(game: Game, depth: int, size: Tuple[int, int]):
+    game.entities = []
+    game.walls = set()
+    game.ground = set()
+
     width = size[0]
     height = size[1]
     map = [[0 for x in range(width)] for y in range(height)]
     split_dir = randint(0, 1)
-    root_node = BspNode(Rect((0, 0), size), split_dir)
+    root_node = BspNode(Rect((0, 0), size), split_dir, None)
     root_node.split(depth)
     # print_rec(root_node, 0)
     paint_node(root_node, map, game)
     paint_corridors(root_node, map)
     add_doors(game, map)
-    place_npcs(root_node, game)
     test = ""
     for y in range(height):
         line = ""
@@ -302,11 +327,57 @@ def generate(game: Game, depth: int, size: Tuple[int, int]):
             else:
                 line += " "
         test += line + "\n"
-    player = (
-        core.Player(game)
-        .with_grid_pos((5, 5))
-        .with_sprite_idx(8)
-    )
+    rooms = []
+    place_npcs(root_node, game, rooms)
+    start: BspNode = random.choice(rooms)
+    rooms.remove(start)
+    player_pos_list = []
+    for x in range(start.bounds.pos[0], start.bounds.end()[0]):
+        for y in range(start.bounds.pos[1], start.bounds.end()[1]):
+            if valid_position(x, y, map, game):
+                player_pos_list.append((x, y))
+    player = game.controller_entity
+    player_pos = random.choice(player_pos_list)
+    if player is not None:
+        player.grid_pos = player_pos
+    else:
+        player = (
+            core.Player(game)
+            .with_grid_pos(player_pos)
+        )
     game.entities.append(player)
     game.controller_entity = player
     # print("dungeon")
+    end: BspNode = random.choice(rooms)
+    end_pos_list = []
+    for x in range(end.bounds.pos[0], end.bounds.end()[0]):
+        for y in range(end.bounds.pos[1], end.bounds.end()[1]):
+            if valid_position(x, y, map, game):
+                end_pos_list.append((x, y))
+    stairs_pos = random.choice(end_pos_list)
+    stairs = Stairs().with_grid_pos(stairs_pos)
+    game.entities.append(stairs)
+    door = None
+    door_dist = 0
+    for i in game.entities:
+        if isinstance(i, Door):
+            i_dist = min(abs(stairs_pos[0] - i.grid_pos[0]), abs(stairs_pos[1] - i.grid_pos[1]))
+            if door is None:
+                door = i
+                door_dist = i_dist
+            else:
+                if i_dist < door_dist:
+                    door = i
+                    door_dist = i_dist
+    door.destroy()
+    locked_door = LockedDoor().with_grid_pos(door.grid_pos)
+    game.entities.append(locked_door)
+
+    key_room = pick_key_room(start, end)
+    key_pos_list = []
+    for x in range(key_room.bounds.pos[0], key_room.bounds.end()[0]):
+        for y in range(key_room.bounds.pos[1], key_room.bounds.end()[1]):
+            if valid_position(x, y, map, game):
+                key_pos_list.append((x, y))
+    key_entity = ItemEntity(KeyItem()).with_grid_pos(random.choice(key_pos_list))
+    game.entities.append(key_entity)

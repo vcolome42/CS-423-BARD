@@ -9,11 +9,14 @@ class Game:
     entities: list
     controller_entity = None
     walls: Set[Tuple[int, int]]
+    game_over = False
+    next_level = False
     def __init__(self):
         self.ground = set()
         self.entities = []
         self.walls = set()
         self.game_over = False
+        self.next_level = False
         self.inventory_open = False
     def step(self):
         self.entities = [entity for entity in self.entities if not entity.destroyed]
@@ -25,6 +28,11 @@ class Game:
                     if random.random() > 0.5:  # 50% chance entity attacks
                         entity.attack(self.controller_entity)
                         print(f"{entity} attacked {self.controller_entity}")
+        if self.controller_entity:
+            for i in self.entities:
+                if i is Stairs:
+                    if i.grid_pos == self.controller_entity.grid_pos:
+                        self.next_level = True
 
     def create_occlusion_set(self) -> Set[Tuple[int, int]]:
         occ = set()
@@ -141,6 +149,11 @@ class Door(Entity):
         return True
     def interact(self, user):
         self.set_opened(not self.opened)
+
+class Stairs(Entity):
+    def __init__(self):
+        self.sprite_idx = 3
+        self.collision = False
 
 class LockedDoor(Entity):
     opened: bool = False

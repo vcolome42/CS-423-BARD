@@ -213,18 +213,19 @@ def render_inventory(surface, player):
 def recognize_data(recognizer: speech.Recognizer, data: speech.AudioData) -> None | str:
     out = None
     try:
+        # out = recognizer.recognize_vosk(data)
+        # out = recognizer.recognize_sphinx(data)
         out = recognizer.recognize_google(data)
         print(out)
-        # out = recognizer.recognize_sphinx(data)
     except Exception as e:
         print("Listener error:", e)
     return out
 
 def on_listener_heard(recognizer: speech.Recognizer, data: speech.AudioData):
     global text_surf
-    print("heard something")
     vc_command = recognize_data(recognizer, data)
     text = f"Voice: {vc_command}" if vc_command else "Voice: No words recognized."
+    print("Heard:", vc_command)
     text_surf = DEFAULT_FONT.render(text, False, (255, 255, 255))
     if vc_command:
         parse_and_execute_command(vc_command)
@@ -247,6 +248,10 @@ def main_loop():
         player: core.Player | None = None
         if game.controller_entity:
             player = game.controller_entity
+
+        if game.next_level:
+            game.next_level = False
+            generate(game, 4, (32, 32))
 
         for event in pg.event.get():
             if event.type == pg.QUIT:
@@ -285,7 +290,7 @@ def main_loop():
             text_rect = game_over_text.get_rect(center=(screen.get_width() // 2, screen.get_height() // 2))
             screen.blit(game_over_text, text_rect)
             pg.display.flip()
-            continue 
+            continue
 
         # Render steps
         game_screen.fill("black")
