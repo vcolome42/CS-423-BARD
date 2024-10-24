@@ -34,12 +34,12 @@ class BspNode:
         self.children = []
         self.split_dir = split_dir
     def split(self, depth: int):
-        print("split ", depth)
+        # print("split ", depth)
         if depth == 0:
             return
         a, b = split_rect(self.bounds, self.split_dir)
-        print(a.size, a.width() >= MIN_BOUNDS_SIZE and a.height() >= MIN_BOUNDS_SIZE)
-        print(b.size, b.width() >= MIN_BOUNDS_SIZE and b.height() >= MIN_BOUNDS_SIZE)
+        # print(a.size, a.width() >= MIN_BOUNDS_SIZE and a.height() >= MIN_BOUNDS_SIZE)
+        # print(b.size, b.width() >= MIN_BOUNDS_SIZE and b.height() >= MIN_BOUNDS_SIZE)
         if a.width() >= MIN_BOUNDS_SIZE and a.height() >= MIN_BOUNDS_SIZE\
             and b.width() >= MIN_BOUNDS_SIZE and b.height() >= MIN_BOUNDS_SIZE:
             new_split = 1 if self.split_dir == 0 else 0
@@ -94,8 +94,12 @@ def paint_node(node: BspNode, map: list[list[int]], game: Game):
     
     room_width = randint(MIN_ROOM_SIZE, node.bounds.width() - MIN_PADDING * 2)
     room_height = randint(MIN_ROOM_SIZE, node.bounds.height() - MIN_PADDING * 2)
+    margin_width = node.bounds.width() - room_width
+    margin_height = node.bounds.width() - room_height
+    margin_left = int(margin_width / 2)
+    margin_top = int(margin_height / 2)
     inner = Rect(
-        (node.bounds.pos[0] + MIN_PADDING, node.bounds.pos[1] + MIN_PADDING),
+        (node.bounds.pos[0] + margin_left, node.bounds.pos[1] + margin_top),
         (room_width, room_height),
     )
 
@@ -140,17 +144,24 @@ def paint_corridors(node: BspNode, map: list[list[int]]):
             center_a_y = int(a.bounds.pos[1] + a.bounds.size[1] / 2)
             center_b_y = int(b.bounds.pos[1] + b.bounds.size[1] / 2)
             for i in range(center_a_y, center_b_y):
-                print(center_x, i)
+                # print(center_x, i)
                 map[i][center_x] = 1
         else:
             center_y = int(a.bounds.pos[1] + a.bounds.size[1] / 2)
             center_a_x = int(a.bounds.pos[0] + a.bounds.size[0] / 2)
             center_b_x = int(b.bounds.pos[0] + b.bounds.size[0] / 2)
             for i in range(center_a_x, center_b_x):
-                print(i, center_y)
+                # print(i, center_y)
                 map[center_y][i] = 1
         for child_node in node.children:
             paint_corridors(child_node, map)
+
+def place_npcs(node: BspNode, game: Game):
+    if node.children:
+        for child in node.children:
+            place_npcs(child, game)
+        return
+
 
 def add_doors(game: Game, map: list[list[int]], num_doors: int):
     door_count = 0
@@ -162,7 +173,7 @@ def add_doors(game: Game, map: list[list[int]], num_doors: int):
             door_count += 1
 
 def print_rec(node: BspNode, depth:int = 0):
-    print(depth, "\t" * depth, node.bounds.pos, node.bounds.size)
+    # print(depth, "\t" * depth, node.bounds.pos, node.bounds.size)
     for i in node.children:
         print_rec(i, depth + 1)
 
@@ -173,7 +184,7 @@ def generate(game: Game, depth: int, size: Tuple[int, int]):
     split_dir = randint(0, 1)
     root_node = BspNode(Rect((0, 0), size), split_dir)
     root_node.split(depth)
-    print_rec(root_node, 0)
+    # print_rec(root_node, 0)
     paint_node(root_node, map, game)
     paint_corridors(root_node, map)
     add_doors(game, map, randint(1, 3))
@@ -190,4 +201,11 @@ def generate(game: Game, depth: int, size: Tuple[int, int]):
             else:
                 line += " "
         test += line + "\n"
+    player = (
+        core.Player(game)
+        .with_grid_pos((5, 5))
+        .with_sprite_idx(8)
+    )
+    game.entities.append(player)
+    game.controller_entity = player
     # print("dungeon")

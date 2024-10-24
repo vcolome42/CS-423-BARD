@@ -12,14 +12,14 @@ from commands import commands
 
 game = core.Game()
 generate(game, 4, (32, 32))
-player = (
-    core.Player(game)
-    .with_grid_pos((5, 5))
-    .with_sprite_idx(8)
-)
-
-game.entities.append(player)
-game.controller_entity = player
+# player = (
+#     core.Player(game)
+#     .with_grid_pos((5, 5))
+#     .with_sprite_idx(8)
+# )
+#
+# game.entities.append(player)
+# game.controller_entity = player
 
 # pygame setup
 pg.init()
@@ -276,10 +276,11 @@ def main_loop():
         # Render steps
         game_screen.fill("black")
         render_game(game)
-        render_health_bar(game_screen, player.health, 100)
-        
-        if game.inventory_open:
-            render_inventory(game_screen, player)
+        if game.controller_entity:
+            player = game.controller_entity
+            render_health_bar(game_screen, player.health, 100)
+            if game.inventory_open:
+                render_inventory(game_screen, player)
 
         screen.fill("black")
         screen.blit(pg.transform.scale(game_screen, screen.get_rect().size), (0, 0))

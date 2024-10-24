@@ -46,7 +46,7 @@ class Game:
 
 class Entity:
     grid_pos: Tuple[int, int]
-    sprite_idx: int
+    sprite_idx: int = 15
     collision: bool = False
     destroyed: bool = False
     def with_grid_pos(self, grid_pos: Tuple[int, int]):
@@ -99,6 +99,27 @@ class Door(Entity):
         self.opened = opened
         self.collision = not opened
         self.sprite_idx = 6 if opened else 2
+    def get_synonym_list(self) -> Set[str]:
+        return super().get_synonym_list().union({
+            "door",
+            "gate",
+            "entrance",
+            "exit",
+        })
+    def get_flags(self) -> Set[str]:
+        return super().get_flags().union({
+            "opened" if self.opened else "closed"
+        })
+
+class LockedDoor(Entity):
+    opened: bool = False
+    def __init__(self):
+        self.sprite_idx = 2
+        self.collision = True
+    def set_opened(self, opened: bool):
+        self.opened = opened
+        self.collision = not opened
+        self.sprite_idx = -1 if opened else 5
     def get_synonym_list(self) -> Set[str]:
         return super().get_synonym_list().union({
             "door",
