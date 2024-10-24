@@ -95,7 +95,7 @@ def paint_node(node: BspNode, map: list[list[int]], game: Game):
     room_width = randint(MIN_ROOM_SIZE, node.bounds.width() - MIN_PADDING * 2)
     room_height = randint(MIN_ROOM_SIZE, node.bounds.height() - MIN_PADDING * 2)
     margin_width = node.bounds.width() - room_width
-    margin_height = node.bounds.width() - room_height
+    margin_height = node.bounds.height() - room_height
     margin_left = int(margin_width / 2)
     margin_top = int(margin_height / 2)
     inner = Rect(
