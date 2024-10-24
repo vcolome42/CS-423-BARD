@@ -22,7 +22,7 @@ pg.init()
 pg.font.init()
 
 DEFAULT_FONT = pg.font.SysFont("Arial", 24)
-text_surf = DEFAULT_FONT.render("", False, (255, 255, 255))
+text_surf = DEFAULT_FONT.render("", False, (255, 255, 255), (0, 0, 0))
 
 SCREEN_SIZE = (240, 144)
 RENDER_SCALE = 2
@@ -99,14 +99,14 @@ def parse_and_execute_command(command: str):
             commandFound = True
         else:
             print("Invalid number.")
-            text_surf = DEFAULT_FONT.render("Invalid number.", False, (255, 0, 0))
+            text_surf = DEFAULT_FONT.render("Invalid number.", False, (255, 0, 0), (0, 0, 0))
     for commandKeys in commands:
         if commandKeys in command:
             player_decide(commands[commandKeys])
             commandFound = True
     if not commandFound:
         print("Command not recognized.")
-        text_surf = DEFAULT_FONT.render("Command not recognized.", False, (255, 0, 0))
+        text_surf = DEFAULT_FONT.render("Command not recognized.", False, (255, 0, 0), (0, 0, 0))
 
 # decide_voice_debounce = False
 
@@ -118,11 +118,11 @@ def player_decide(action: core.EntityAction):
         game.step()
     else:
         if isinstance(action, core.PickUpAction):
-            text_surf = DEFAULT_FONT.render("No items nearby to pick up.", False, (255, 0, 0))
+            text_surf = DEFAULT_FONT.render("No items nearby to pick up.", False, (255, 0, 0), (0, 0, 0))
         elif isinstance(action, core.InteractEverything):
-            text_surf = DEFAULT_FONT.render("No interactables.", False, (255, 0, 0))
+            text_surf = DEFAULT_FONT.render("No interactables.", False, (255, 0, 0), (0, 0, 0))
         else:
-            text_surf = DEFAULT_FONT.render("Action is not valid.", False, (255, 0, 0))
+            text_surf = DEFAULT_FONT.render("Action is not valid.", False, (255, 0, 0), (0, 0, 0))
 
 def grid_to_draw(gridpos: Tuple[int, int]) -> Tuple[int, int]:
     return (gridpos[0] * 16, gridpos[1] * 16)
@@ -227,12 +227,12 @@ def on_listener_heard(recognizer: speech.Recognizer, data: speech.AudioData):
     vc_command = recognize_data(recognizer, data)
     text = f"Voice: {vc_command}" if vc_command else "Voice: No words recognized."
     print("Heard:", vc_command)
-    text_surf = DEFAULT_FONT.render(text, False, (255, 255, 255))
+    text_surf = DEFAULT_FONT.render(text, False, (255, 255, 255), (0, 0, 0))
     if vc_command:
         parse_and_execute_command(vc_command)
     else:
         print("Command not recognized.")
-        text_surf = DEFAULT_FONT.render("Command not recognized.", False, (255, 0, 0))
+        text_surf = DEFAULT_FONT.render("Command not recognized.", False, (255, 0, 0), (0, 0, 0))
 
 RECOGNIZER = speech.Recognizer()
 RECOGNIZER.dynamic_energy_threshold = False
