@@ -17,27 +17,9 @@ player = (
     .with_grid_pos((5, 5))
     .with_sprite_idx(8)
 )
-# debug_room_size = 9
-# debug_room_center = 4
-# for j in range(0, debug_room_size):
-#     for i in range(0, debug_room_size):
-#         game.ground.add((i, j))
-# for j in range(0, debug_room_size):
-#     for i in range(0, debug_room_size):
-#         delta = (abs(i - debug_room_center), abs(j - debug_room_center))
-#         manhat_dist = delta[0] if delta[0] >= delta[1] else delta[1]
-#         if manhat_dist >= 4:
-#             game.walls.add((i, j))
-# player = (
-#     core.Entity()
-#     .with_grid_pos((debug_room_center, debug_room_center))
-#     .with_sprite_idx(8)
-# )
+
 game.entities.append(player)
 game.controller_entity = player
-
-# door = core.Door().with_grid_pos((debug_room_center + 1, debug_room_center))
-# game.entities.append(door)
 
 # pygame setup
 pg.init()
