@@ -1,6 +1,7 @@
 from abc import abstractmethod
 from typing import Tuple, Set
 from items import *
+import random
 
 
 class Game:
@@ -12,14 +13,21 @@ class Game:
         self.ground = set()
         self.entities = []
         self.walls = set()
+        self.game_over = False
     def step(self):
-        for entity in self.entities.copy(): # destroyed entities shouldn't act in this step.
-            if entity.destroyed:
-                self.entities.remove(entity)
-
+        self.entities = [entity for entity in self.entities if not entity.destroyed]
         for entity in self.entities:
-            if entity != self.controller_entity:
-                pass
+            if entity != self.controller_entity and isinstance(entity, Character):
+                distance_x = abs(entity.grid_pos[0] - self.controller_entity.grid_pos[0])
+                distance_y = abs(entity.grid_pos[1] - self.controller_entity.grid_pos[1])
+                if distance_x <= 1 and distance_y <= 1:
+                    if random.random() > 0.5:  # 50% chance entity attacks
+                        entity.attack(self.controller_entity)
+                        print(f"{entity} attacked {self.controller_entity}")
+
+
+
+
     def create_occlusion_set(self) -> Set[Tuple[int, int]]:
         occ = set()
         for wall in self.walls:
@@ -60,6 +68,29 @@ class Entity:
     def destroy(self):
         self.destroyed = True
 
+class Character(Entity):
+    def __init__(self, game: Game, health: int, attack_damage: int):
+        super().__init__()
+        self.game = game
+        self.health = health
+        self.attack_damage = attack_damage
+
+    def take_damage(self, damage: int):
+        self.health -= damage
+        if self.health <= 0:
+            self.destroy()
+
+    def attack(self, target: 'Character'):
+        if isinstance(target, Character):
+            target.take_damage(self.attack_damage)
+            print(f"{self} attacked {target}")
+
+    def destroy(self):
+        if self == self.game.controller_entity:
+            print("game over")
+            self.game.game_over = True
+
+
 class Door(Entity):
     opened: bool = False
     def __init__(self):
@@ -88,25 +119,22 @@ class ItemEntity(Entity):
             "item",
         })
 
+class Player(Character):
+    def __init__(self, game: Game):
+        super().__init__(game, health=100, attack_damage=10)
+        self.sprite_idx = 8
 
-class Slime(Entity):
-    def __init__(self):
-        super().__init__()
+class Slime(Character):
+    def __init__(self, game: Game):
+        super().__init__(game, health=20, attack_damage=5)
         self.sprite_idx = 9
         self.collision = True
 
-    def get_synonym_list(self) -> Set[str]:
-        return super().get_synonym_list().union({"slime"})
-
-class Skeleton(Entity):
-    def __init__(self):
-        super().__init__()
+class Skeleton(Character):
+    def __init__(self, game: Game):
+        super().__init__(game, health=30, attack_damage=7)
         self.sprite_idx = 13
         self.collision = True
-
-    def get_synonym_list(self) -> Set[str]:
-        return super().get_synonym_list().union({"skeleton"})
-
 
 class EntityAction:
     def is_valid(self, user: Entity, game: Game) -> bool:
@@ -149,3 +177,13 @@ class MoveUntilObstacleAction(EntityAction):
             if target_pos in game.create_occlusion_set():
                 break
             user.grid_pos = target_pos
+
+class AttackAction(EntityAction):
+    def act(self, user: Character, game: Game):
+        # find nearby enemies
+        for entity in game.entities:
+            if isinstance(entity, Character) and entity != user:
+                if abs(user.grid_pos[0] - entity.grid_pos[0]) <= 1 and abs(user.grid_pos[1] - entity.grid_pos[1]) <= 1:
+                    user.attack(entity)
+                    print(f"{user} attacked {entity}")
+                    break

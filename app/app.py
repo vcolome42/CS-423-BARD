@@ -7,13 +7,14 @@ import sprites
 import core
 import re
 
+from core import AttackAction
 from dungeon import generate
 from commands import commands
 
 game = core.Game()
 generate(game, 4, (32, 32))
 player = (
-    core.Entity()
+    core.Player(game)
     .with_grid_pos((5, 5))
     .with_sprite_idx(8)
 )
@@ -122,12 +123,10 @@ def parse_and_execute_command(command: str):
         else:
             print("Invalid number.")
             text_surf = DEFAULT_FONT.render("Invalid number.", False, (255, 0, 0))
-    else:
-        for commandKeys in commands:
-            if commandKeys in command:
-                player_decide(commands[commandKeys])
-                commandFound = True
-
+    for commandKeys in commands:
+        if commandKeys in command:
+            player_decide(commands[commandKeys])
+            commandFound = True
     if not commandFound:
         print("Command not recognized.")
         text_surf = DEFAULT_FONT.render("Command not recognized.", False, (255, 0, 0))
@@ -138,6 +137,7 @@ def player_decide(action: core.EntityAction):
     player = game.controller_entity
     if action.is_valid(player, game):
         action.act(player, game)
+        game.step()
 
 def grid_to_draw(gridpos: Tuple[int, int]) -> Tuple[int, int]:
     return (gridpos[0] * 16, gridpos[1] * 16)
@@ -157,9 +157,27 @@ def render_game(game: core.Game):
     for wall_gridpos in game.walls:
         game_screen.blit(tiles.get_sprite(0), view_grid_to_draw(wall_gridpos, local_pos))
     for entity in game.entities:
-        game_screen.blit(
-            tiles.get_sprite(entity.sprite_idx), view_grid_to_draw(entity.grid_pos, local_pos)
-        )
+        if not entity.destroyed:  # Check if the entity is not destroyed
+            game_screen.blit(
+                tiles.get_sprite(entity.sprite_idx), view_grid_to_draw(entity.grid_pos, local_pos)
+            )
+
+def render_health_bar(surface, current_health, max_health, position=(85, 10), size=(70, 10)):
+    health_ratio = current_health / max_health
+    health_bar_width = int(size[0] * health_ratio)
+
+    bar_color = (0, 255, 0)  # gree color for health
+    back_color = (100, 100, 100)  # grey background
+
+    # background bar
+    back_rect = pg.Rect(position, size)
+    pg.draw.rect(surface, back_color, back_rect)
+
+    # health bar
+    health_rect = pg.Rect(position, (health_bar_width, size[1]))
+    pg.draw.rect(surface, bar_color, health_rect)
+
+    pg.draw.rect(surface, (255, 255, 255), back_rect, 1)  # White border
 
 # def decide_voice():
 #     global text_surf
@@ -223,10 +241,20 @@ def main_loop():
                 #     text = "LISTENING: "
                 #     text_surf = DEFAULT_FONT.render(text, False, (255, 255, 255))
                 #     decide_voice_debounce = True
+        
+        if game.game_over:
+            # display  over screen
+            screen.fill("black")
+            game_over_text = DEFAULT_FONT.render("Game Over", True, (255, 0, 0))
+            text_rect = game_over_text.get_rect(center=(screen.get_width() // 2, screen.get_height() // 2))
+            screen.blit(game_over_text, text_rect)
+            pg.display.flip()
+            continue 
 
         # Render steps
         game_screen.fill("black")
         render_game(game)
+        render_health_bar(game_screen, player.health, 100)
 
         screen.fill("black")
         screen.blit(pg.transform.scale(game_screen, screen.get_rect().size), (0, 0))

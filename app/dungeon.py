@@ -1,5 +1,6 @@
 from random import randint, choice, random, randrange
 from core import *
+import random as randomFix
 import core
 
 MIN_BOUNDS_SIZE = 6
@@ -47,7 +48,7 @@ class BspNode:
                 child.split(depth - 1)
 
 def split_factor():
-    return random() * (SPLIT_RANGE[1] - SPLIT_RANGE[0]) + SPLIT_RANGE[0]
+    return randomFix.random() * (SPLIT_RANGE[1] - SPLIT_RANGE[0]) + SPLIT_RANGE[0]
 
 def split_rect(container: Rect, split_dir: int) -> Tuple[Rect, Rect]:
     start = container.pos
@@ -110,7 +111,7 @@ def paint_node(node: BspNode, map: list[list[int]], game: Game):
     npc_classes = [Slime, Skeleton]
     for _ in range(num_npcs):
         npc_class = choice(npc_classes)
-        npc = npc_class()
+        npc = npc_class(game)
         while True:
             npc_pos = (randint(inner.pos[0], inner.end()[0] - 1), randint(inner.pos[1], inner.end()[1] - 1))
             if valid_position(npc_pos[0], npc_pos[1], map, game):

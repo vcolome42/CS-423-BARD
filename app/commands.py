@@ -1,4 +1,4 @@
-from core import MoveAction, WaitAction, TeleportAction, MoveUntilObstacleAction
+from core import MoveAction, WaitAction, TeleportAction, MoveUntilObstacleAction, AttackAction
 
 # keyword commands in different file to add an extensive list
 commands = {
@@ -40,12 +40,12 @@ commands = {
     "unlock the treasure": None,
 
     # Attack
-    "attack": None,
-    "strike": None,
-    "hit": None,
-    "fight": None,
-    "punch": None,
-    "stab": None,
+    "attack": AttackAction(),
+    "strike": AttackAction(),
+    "hit": AttackAction(),
+    "fight": AttackAction(),
+    "punch": AttackAction(),
+    "stab": AttackAction(),
 
     # Move left all the way
     "move left all the way": MoveUntilObstacleAction((-1, 0)),
