@@ -7,7 +7,6 @@ import sprites
 import core
 import re
 
-from core import AttackAction
 from dungeon import generate
 from commands import commands
 
@@ -134,10 +133,16 @@ def parse_and_execute_command(command: str):
 # decide_voice_debounce = False
 
 def player_decide(action: core.EntityAction):
+    global text_surf
     player = game.controller_entity
     if action.is_valid(player, game):
         action.act(player, game)
         game.step()
+    else:
+        if isinstance(action, core.PickUpAction):
+            text_surf = DEFAULT_FONT.render("No items nearby to pick up.", False, (255, 0, 0))
+        else:
+            text_surf = DEFAULT_FONT.render("Action is not valid.", False, (255, 0, 0))
 
 def grid_to_draw(gridpos: Tuple[int, int]) -> Tuple[int, int]:
     return (gridpos[0] * 16, gridpos[1] * 16)
@@ -178,6 +183,41 @@ def render_health_bar(surface, current_health, max_health, position=(85, 10), si
     pg.draw.rect(surface, bar_color, health_rect)
 
     pg.draw.rect(surface, (255, 255, 255), back_rect, 1)  # White border
+
+def render_inventory(surface, player):
+    inventory_surface = pg.Surface((200, 100))
+    inventory_surface.fill((50, 50, 50))
+    inventory_rect = inventory_surface.get_rect()
+    
+    # border around inventory
+    pg.draw.rect(inventory_surface, (255, 255, 255), inventory_rect, 2)
+
+    # Render inventory items
+    x_offset = 10
+    y_offset = 10
+    item_spacing = 40  # space between items
+
+    for item_name, item_info in player.inventory.items():
+        item_sprite_idx = item_info['item'].sprite_idx
+        item_sprite = tiles.get_sprite(item_sprite_idx)
+
+        # scale up the item 
+        item_sprite_large = pg.transform.scale(item_sprite, (30, 30))
+        inventory_surface.blit(item_sprite_large, (x_offset, y_offset))
+
+        # draw quantity
+        quantity_text = (pg.font.SysFont("Arial", 10)).render(f"x{item_info['quantity']}", True, (0, 0, 0))
+        # bottom right corner of the item sprite
+        quantity_rect = quantity_text.get_rect(bottomright=(x_offset + 32, y_offset + 32))
+        inventory_surface.blit(quantity_text, quantity_rect)
+
+        # next item
+        x_offset += item_spacing
+        if x_offset + item_spacing > inventory_surface.get_width():
+            x_offset = 10
+            y_offset += item_spacing
+
+    surface.blit(inventory_surface, (20, 20)) 
 
 # def decide_voice():
 #     global text_surf
@@ -255,6 +295,9 @@ def main_loop():
         game_screen.fill("black")
         render_game(game)
         render_health_bar(game_screen, player.health, 100)
+        
+        if game.inventory_open:
+            render_inventory(game_screen, player)
 
         screen.fill("black")
         screen.blit(pg.transform.scale(game_screen, screen.get_rect().size), (0, 0))

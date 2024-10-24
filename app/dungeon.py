@@ -1,7 +1,8 @@
-from random import randint, choice, random, randrange
+from random import randint, choice
 from core import *
 import random as randomFix
 import core
+from items import HealingPotion
 
 MIN_BOUNDS_SIZE = 6
 SPLIT_RANGE = (0.4, 0.6)
@@ -117,6 +118,17 @@ def paint_node(node: BspNode, map: list[list[int]], game: Game):
             if valid_position(npc_pos[0], npc_pos[1], map, game):
                 npc.with_grid_pos(npc_pos)
                 game.entities.append(npc)
+                break
+    
+    # Generate random potions
+    num_potions = randint(0, 1)
+    for _ in range(num_potions):
+        potion_entity = ItemEntity(HealingPotion())
+        while True:
+            potion_pos = (randint(inner.pos[0], inner.end()[0] - 1), randint(inner.pos[1], inner.end()[1] - 1))
+            if valid_position(potion_pos[0], potion_pos[1], map, game):
+                potion_entity.with_grid_pos(potion_pos)
+                game.entities.append(potion_entity)
                 break
 
 def paint_corridors(node: BspNode, map: list[list[int]]):

@@ -14,6 +14,7 @@ class Game:
         self.entities = []
         self.walls = set()
         self.game_over = False
+        self.inventory_open = False
     def step(self):
         self.entities = [entity for entity in self.entities if not entity.destroyed]
         for entity in self.entities:
@@ -24,9 +25,6 @@ class Game:
                     if random.random() > 0.5:  # 50% chance entity attacks
                         entity.attack(self.controller_entity)
                         print(f"{entity} attacked {self.controller_entity}")
-
-
-
 
     def create_occlusion_set(self) -> Set[Tuple[int, int]]:
         occ = set()
@@ -114,16 +112,42 @@ class Door(Entity):
         })
 
 class ItemEntity(Entity):
-    item: Item
+    def __init__(self, item: Item):
+        super().__init__()
+        self.item = item
+        self.sprite_idx = item.sprite_idx
+        self.collision = False
+
     def get_synonym_list(self) -> Set[str]:
         return super().get_synonym_list().union({
-            "item",
+            self.item.name.lower(),
+            "potion",
+            "health potion"
         })
 
 class Player(Character):
     def __init__(self, game: Game):
         super().__init__(game, health=100, attack_damage=10)
+        self.max_health = 100
+        self.inventory = {}
         self.sprite_idx = 8
+
+    def add_to_inventory(self, item: Item):
+        if item.name in self.inventory:
+            self.inventory[item.name]['quantity'] += 1
+        else:
+            self.inventory[item.name] = {'item': item, 'quantity': 1}
+        print(f"{item.name} added to inventory.")
+
+    def use_item(self, item_name: str):
+        if item_name in self.inventory and self.inventory[item_name]['quantity'] > 0:
+            item = self.inventory[item_name]['item']
+            item.use(self)
+            self.inventory[item_name]['quantity'] -= 1
+            if self.inventory[item_name]['quantity'] == 0:
+                del self.inventory[item_name]
+        else:
+            print(f"No {item_name} in inventory.")
 
 class Slime(Character):
     def __init__(self, game: Game):
@@ -188,3 +212,52 @@ class AttackAction(EntityAction):
                     user.attack(entity)
                     print(f"{user} attacked {entity}")
                     break
+
+class OpenInventoryAction(EntityAction):
+    def act(self, user: Entity, game: Game):
+        game.inventory_open = True
+        print("Inventory opened.")
+
+class CloseInventoryAction(EntityAction):
+    def act(self, user: Entity, game: Game):
+        game.inventory_open = False
+        print("Inventory closed.")
+
+class UseItemAction(EntityAction):
+    def __init__(self, item_name: str):
+        self.item_name = item_name
+
+    def is_valid(self, user: Entity, game: Game) -> bool:
+        return self.item_name in user.inventory
+
+    def act(self, user: Entity, game: Game):
+        user.use_item(self.item_name)
+
+class PickUpAction(EntityAction):
+    def are_positions_adjacent(self, pos1: Tuple[int, int], pos2: Tuple[int, int]) -> bool:
+        dx = abs(pos1[0] - pos2[0])
+        dy = abs(pos1[1] - pos2[1])
+        return (dx <= 1 and dy <= 1)
+    
+    def is_valid(self, user: Entity, game: Game) -> bool:
+        for entity in game.entities:
+            if isinstance(entity, ItemEntity):
+                if self.are_positions_adjacent(user.grid_pos, entity.grid_pos):
+                    return True
+        return False
+
+    def act(self, user: Entity, game: Game):
+        items_to_pick = []
+        for entity in game.entities:
+            if isinstance(entity, ItemEntity):
+                if self.are_positions_adjacent(user.grid_pos, entity.grid_pos):
+                    items_to_pick.append(entity)
+
+        if items_to_pick:
+            for item_entity in items_to_pick:
+                user.add_to_inventory(item_entity.item)
+                game.entities.remove(item_entity)
+                print(f"Picked up {item_entity.item.name}.")
+        else:
+            print("No items nearby to pick up.")
+    

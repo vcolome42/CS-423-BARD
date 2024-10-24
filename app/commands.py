@@ -1,4 +1,4 @@
-from core import MoveAction, WaitAction, TeleportAction, MoveUntilObstacleAction, AttackAction
+from core import MoveAction, WaitAction, TeleportAction, MoveUntilObstacleAction, AttackAction, PickUpAction, OpenInventoryAction, CloseInventoryAction, UseItemAction
 
 # keyword commands in different file to add an extensive list
 commands = {
@@ -75,5 +75,26 @@ commands = {
     "step down all the way": MoveUntilObstacleAction((0, 1)),
     "walk down all the way": MoveUntilObstacleAction((0, 1)),
     "head down all the way": MoveUntilObstacleAction((0, 1)),
+
+    # Picking up items
+    "pick up": PickUpAction(),
+    "take": PickUpAction(),
+    "grab": PickUpAction(),
+    "collect": PickUpAction(),
+
+    # Open inventory
+    "open inventory": OpenInventoryAction(),
+    "show inventory": OpenInventoryAction(),
+    "inventory": OpenInventoryAction(),
+
+    # Close inventory
+    "close inventory": CloseInventoryAction(),
+    "hide inventory": CloseInventoryAction(),
+
+    # Use health potion
+    "use potion": UseItemAction("Health Potion"),
+    "use health potion": UseItemAction("Health Potion"),
+    "drink health potion": UseItemAction("Health Potion"),
+    "eat health potion": UseItemAction("Health Potion"),
 }
 
