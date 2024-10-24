@@ -58,6 +58,11 @@ class Entity:
     def with_collision(self, collision: bool):
         self.collision = collision
         return self
+    def can_interact(self):
+        return False
+    def interact(self, user):
+        pass
+
     def get_synonym_list(self) -> Set[str]:
         return set()
     def get_flags(self) -> Set[str]:
@@ -110,11 +115,15 @@ class Door(Entity):
         return super().get_flags().union({
             "opened" if self.opened else "closed"
         })
+    def can_interact(self):
+        return True
+    def interact(self, user):
+        self.set_opened(not self.opened)
 
 class LockedDoor(Entity):
     opened: bool = False
     def __init__(self):
-        self.sprite_idx = 2
+        self.sprite_idx = 5
         self.collision = True
     def set_opened(self, opened: bool):
         self.opened = opened
@@ -131,6 +140,13 @@ class LockedDoor(Entity):
         return super().get_flags().union({
             "opened" if self.opened else "closed"
         })
+
+    def can_interact(self):
+        return True
+    def interact(self, user):
+        if user is Player:
+            if user.use_item("key"):
+                self.set_opened(True)
 
 class ItemEntity(Entity):
     def __init__(self, item: Item):
@@ -167,8 +183,10 @@ class Player(Character):
             self.inventory[item_name]['quantity'] -= 1
             if self.inventory[item_name]['quantity'] == 0:
                 del self.inventory[item_name]
+            return True
         else:
             print(f"No {item_name} in inventory.")
+            return False
 
 class Slime(Character):
     def __init__(self, game: Game):
@@ -281,4 +299,16 @@ class PickUpAction(EntityAction):
                 print(f"Picked up {item_entity.item.name}.")
         else:
             print("No items nearby to pick up.")
-    
+
+class InteractAction(EntityAction):
+    target: Entity
+    def __init__(self, target: Entity):
+        self.target = target
+    def act(self, user: Character, game: Game):
+        # find nearby enemies
+        for entity in game.entities:
+            if isinstance(entity, Character) and entity != user:
+                if abs(user.grid_pos[0] - entity.grid_pos[0]) <= 1 and abs(user.grid_pos[1] - entity.grid_pos[1]) <= 1:
+                    user.attack(entity)
+                    print(f"{user} attacked {entity}")
+                    break

@@ -4,11 +4,15 @@ from typing import Tuple
 import pygame as pg
 import speech_recognition as speech
 import sprites
+import items
 import core
 import re
 
 from dungeon import generate
 from commands import commands
+
+CONTROLS = True
+CHEATS = True
 
 game = core.Game()
 generate(game, 4, (32, 32))
@@ -238,10 +242,14 @@ stop_listener = RECOGNIZER.listen_in_background(MIC, on_listener_heard)
 def main_loop():
     running = True
     while running:
+        player: core.Player | None = None
+        if game.controller_entity:
+            player = game.controller_entity
+
         for event in pg.event.get():
             if event.type == pg.QUIT:
                 running = False
-            if event.type == pg.KEYUP:
+            if event.type == pg.KEYUP and CONTROLS:
                 if event.key == pg.K_DOWN:
                     player_decide(core.MoveAction((0, 1)))
                 if event.key == pg.K_UP:
@@ -250,7 +258,15 @@ def main_loop():
                     player_decide(core.MoveAction((-1, 0)))
                 if event.key == pg.K_RIGHT:
                     player_decide(core.MoveAction((1, 0)))
-
+                if event.key == pg.K_i:
+                    if game.inventory_open:
+                        player_decide(core.CloseInventoryAction())
+                    else:
+                        player_decide(core.OpenInventoryAction())
+                if CHEATS:
+                    if event.key == pg.K_0:
+                        if player:
+                            player.add_to_inventory(items.KeyItem())
                 # if event.key == pg.K_SPACE:
                 #     text = "LISTENING: "
                 #     text_surf = DEFAULT_FONT.render(text, False, (255, 255, 255))
@@ -268,8 +284,7 @@ def main_loop():
         # Render steps
         game_screen.fill("black")
         render_game(game)
-        if game.controller_entity:
-            player = game.controller_entity
+        if player:
             render_health_bar(game_screen, player.health, 100)
             if game.inventory_open:
                 render_inventory(game_screen, player)
