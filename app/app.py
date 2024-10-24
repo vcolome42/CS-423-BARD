@@ -12,14 +12,6 @@ from commands import commands
 
 game = core.Game()
 generate(game, 4, (32, 32))
-# player = (
-#     core.Player(game)
-#     .with_grid_pos((5, 5))
-#     .with_sprite_idx(8)
-# )
-#
-# game.entities.append(player)
-# game.controller_entity = player
 
 # pygame setup
 pg.init()

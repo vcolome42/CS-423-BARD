@@ -1,3 +1,4 @@
+import random
 from random import randint, choice
 from core import *
 import random as randomFix
@@ -162,15 +163,114 @@ def place_npcs(node: BspNode, game: Game):
             place_npcs(child, game)
         return
 
+NEIGHBOR_INDICES = [
+    (-1, -1),
+    (0, -1),
+    (1, -1),
+    (1, 0),
+    (1, 1),
+    (0, 1),
+    (-1, 1),
+    (-1, 0),
+]
+def neighbor_idx_dist(a: int, b: int):
+    if b > a:
+        return min(b - a, 7 - (b - a - 1))
+    else:
+        return min(a - b, 7 - (a - b - 1))
+# https://stackoverflow.com/a/5764807
+def pairwise(iterable):
+    a, b = itertools.tee(iterable)
+    next(b, None)
+    return zip(a, b)
+def add_doors(game: Game, map: list[list[int]]):
+    map_y = len(map)
+    map_x = len(map[0])
+    door_map = [[None for x in range(map_x)] for y in range(map_y)]
+    door_list = []
+    # Cannot handle bounds cases, [1, row/col)
+    for y in range(1, len(map) - 2):
+        row = map[y]
+        for x in range(1, len(row) - 2):
+            origin_pos = (x, y)
+            tile = map[y][x]
+            if tile == 1:
+                voids = [] # Don't know what else to call a subsequence sequence of empty spaces.
+                void = []
+                for nb_idx in range(len(NEIGHBOR_INDICES)):
+                    offset = NEIGHBOR_INDICES[nb_idx]
+                    nb_pos = (x + offset[0], y + offset[1])
+                    grid_tile = map[nb_pos[1]][nb_pos[0]]
+                    # grid_valid = valid_position(nb_pos[0], nb_pos[1], map, game)
+                    if len(void) == 0: # case 1, void is empty
+                        if grid_tile == 1:
+                            void.append(nb_idx)
+                    else: # case 2, void has other tiles
+                        if grid_tile == 1:
+                            void.append(nb_idx)
+                        else: # case 2b: make a new void if it's solid
+                            voids.append(void)
+                            void = []
+                if void:
+                    voids.append(void)
+                    void = []
 
-def add_doors(game: Game, map: list[list[int]], num_doors: int):
-    door_count = 0
-    while door_count < num_doors:
-        x, y = randint(0, len(map[0]) - 1), randint(0, len(map) - 1)
-        if valid_position(x, y, map, game):
-            door = core.Door().with_grid_pos((x, y))
-            game.entities.append(door)
-            door_count += 1
+                if len(voids) >= 2: # connect start and end if they can connect
+                    first_void = voids[0]
+                    last_void = voids[len(voids) - 1]
+                    start_fv = first_void[0]
+                    end_lv = last_void[len(last_void) - 1]
+                    if neighbor_idx_dist(start_fv, end_lv) <= 1:
+                        voids = [last_void + first_void]
+                if len(voids) == 2:
+                    a = voids[0]
+                    b = voids[1]
+                    if len(a) <= 3 and len(b) <= 3:
+                        if (len(a) >= 2 and len(b) == 1) or (len(a) == 1 and len(b) >= 2):
+                            if a == 1: # neither can just be a corner
+                                if a[0] in (0, 2, 4, 6):
+                                    continue
+                            elif b == 1:
+                                if b[0] in (0, 2, 4, 6):
+                                    continue
+                            # print(origin_pos, voids)
+                            new_door = core.Door().with_grid_pos(origin_pos)
+                            door_map[y][x] = new_door
+                            door_list.append(new_door)
+    # choose one from any adjacent doors
+    for y in range(1, map_x - 2):
+        for x in range(1, map_y - 2):
+            # if (x, y) in checked:
+            #     continue
+            if door_map[y][x] is not None:
+                adj_doors = [door_map[y][x]]
+
+                frontier = []
+                checked = []
+                for nb_offset in NEIGHBOR_INDICES:
+                    nb_pos = (x + nb_offset[0], y + nb_offset[1])
+                    frontier.append(nb_pos)
+                while len(frontier) >= 1:
+                    f_pos = frontier.pop()
+                    f_door = door_map[f_pos[1]][f_pos[0]]
+                    if f_door is not None:
+                        adj_doors.append(f_door)
+                        for nb_offset in NEIGHBOR_INDICES:
+                            nb_pos = (f_pos[0] + nb_offset[0], f_pos[1] + nb_offset[1])
+                            if nb_pos not in checked:
+                                frontier.append(nb_pos)
+                    checked.append(f_pos)
+
+                final_door = random.choice(adj_doors)
+                for i in door_list.copy():
+                    if i in adj_doors and i != final_door:
+                        door_list.remove(i)
+    for y in range(1, map_x - 2):
+        for x in range(1, map_y - 2):
+            door_check = door_map[y][x]
+            if door_check is not None and door_check in door_list:
+                game.entities.append(door_map[y][x])
+
 
 def print_rec(node: BspNode, depth:int = 0):
     # print(depth, "\t" * depth, node.bounds.pos, node.bounds.size)
@@ -187,7 +287,8 @@ def generate(game: Game, depth: int, size: Tuple[int, int]):
     # print_rec(root_node, 0)
     paint_node(root_node, map, game)
     paint_corridors(root_node, map)
-    add_doors(game, map, randint(1, 3))
+    add_doors(game, map)
+    place_npcs(root_node, game)
     test = ""
     for y in range(height):
         line = ""
