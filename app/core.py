@@ -86,6 +86,7 @@ class Character(Entity):
             print(f"{self} attacked {target}")
 
     def destroy(self):
+        self.destroyed = True
         if self == self.game.controller_entity:
             print("game over")
             self.game.game_over = True
