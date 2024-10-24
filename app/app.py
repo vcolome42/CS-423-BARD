@@ -143,9 +143,10 @@ def render_game(game: core.Game):
         game_screen.blit(tiles.get_sprite(0), view_grid_to_draw(wall_gridpos, local_pos))
     for entity in game.entities:
         if not entity.destroyed:  # Check if the entity is not destroyed
-            game_screen.blit(
-                tiles.get_sprite(entity.sprite_idx), view_grid_to_draw(entity.grid_pos, local_pos)
-            )
+            if entity.sprite_idx != -1:
+                game_screen.blit(
+                    tiles.get_sprite(entity.sprite_idx), view_grid_to_draw(entity.grid_pos, local_pos)
+                )
 
 def render_health_bar(surface, current_health, max_health, position=(85, 10), size=(70, 10)):
     health_ratio = current_health / max_health

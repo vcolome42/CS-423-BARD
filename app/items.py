@@ -13,3 +13,5 @@ class HealingPotion(Item):
 class KeyItem(Item):
     def __init__(self):
         super().__init__(name="Key", sprite_idx=7)
+    def use(self, user):
+        pass

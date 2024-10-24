@@ -30,7 +30,7 @@ class Game:
                         print(f"{entity} attacked {self.controller_entity}")
         if self.controller_entity:
             for i in self.entities:
-                if i is Stairs:
+                if isinstance(i, Stairs):
                     if i.grid_pos == self.controller_entity.grid_pos:
                         self.next_level = True
 
@@ -179,9 +179,11 @@ class LockedDoor(Entity):
     def can_interact(self):
         return True
     def interact(self, user):
-        if user is Player:
-            if user.use_item("key"):
+        if isinstance(user, Player):
+            if user.use_item("Key"):
                 self.set_opened(True)
+            else:
+                print("You don't have a key")
 
 class ItemEntity(Entity):
     def __init__(self, item: Item):

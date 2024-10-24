@@ -1,3 +1,4 @@
+import math
 import random
 from random import randint, choice
 from core import *
@@ -361,7 +362,7 @@ def generate(game: Game, depth: int, size: Tuple[int, int]):
     door_dist = 0
     for i in game.entities:
         if isinstance(i, Door):
-            i_dist = min(abs(stairs_pos[0] - i.grid_pos[0]), abs(stairs_pos[1] - i.grid_pos[1]))
+            i_dist = math.sqrt((stairs_pos[0] - i.grid_pos[0]) ** 2 + (stairs_pos[1] - i.grid_pos[1]) ** 2)
             if door is None:
                 door = i
                 door_dist = i_dist
