@@ -85,6 +85,8 @@ commands = {
     # Interaction
     "interact": InteractEverything(),
     "touch": InteractEverything(),
+    "open door": InteractEverything(),
+    "unlock door": InteractEverything(),
 
     # Open inventory
     "open inventory": OpenInventoryAction(),

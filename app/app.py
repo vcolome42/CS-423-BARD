@@ -73,6 +73,7 @@ def word_to_num(word: str) -> int:
 
 # parse and execute different commands
 def parse_and_execute_command(command: str):
+    command = command.lower()
     global text_surf
     move_pattern = re.match(
         r".*(left|right|up|down) (\d+|one|two|three|four|five|six|seven|eight|nine|ten)",
