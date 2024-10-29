@@ -217,6 +217,16 @@ def render_inventory(surface, player):
 
     surface.blit(inventory_surface, (20, 20)) 
 
+def render_text(text, fg_color = (255, 255, 255), bg_color = (0, 0, 0)):
+    text_surf = DEFAULT_FONT.render(text, False, fg_color, bg_color)
+    return text_surf
+
+# Used for displaying info outside of main game loop
+def splash_text(text):
+    screen.fill("black")
+    screen.blit(render_text(text), (0, 0))
+    pg.display.flip()
+
 # def decide_voice():
 #     global text_surf
 #     data = ask_voice(recognizer)
@@ -239,7 +249,7 @@ def recognize_data(recognizer: speech.Recognizer, data: speech.AudioData) -> Non
             out = recognizer.recognize_whisper(data, model="small.en")
         else:
             raise Exception("SR_MODEL not set to a supported model.")
-        print(out)
+        print("recognized:", out)
     except Exception as e:
         print("Listener error:", e)
     return out
@@ -260,7 +270,9 @@ RECOGNIZER = speech.Recognizer()
 RECOGNIZER.dynamic_energy_threshold = False
 MIC = speech.Microphone()
 with MIC as source:
-    print("Adjusting mic noise threshold.")
+    hint = "Calibrating mic for noise. Please remain quiet."
+    print(hint)
+    splash_text(hint)
     RECOGNIZER.adjust_for_ambient_noise(source, 5.0)
 
 stop_listener = RECOGNIZER.listen_in_background(MIC, on_listener_heard)
