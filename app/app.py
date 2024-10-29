@@ -10,6 +10,22 @@ import re
 
 from dungeon import generate
 from commands import commands
+from dotenv import dotenv_values
+
+SECRETS = dotenv_values(".env.secret")
+
+class SrModel:
+    GOOGLE = 1
+    WHISPER_LOCAL = 2
+    WHISPER_API = 3
+SR_MODEL = SrModel.WHISPER_LOCAL
+
+WHISPER_API_KEY = None
+if "API_KEY" in SECRETS:
+    WHISPER_API_KEY = SECRETS["API_KEY"]
+    print("Whisper API Key found:", WHISPER_API_KEY)
+    if SR_MODEL != SrModel.WHISPER_API:
+        print("[WARN] Whisper API key found but not using SrModel.WHISPER_API")
 
 CONTROLS = True
 CHEATS = True
@@ -215,9 +231,14 @@ def render_inventory(surface, player):
 def recognize_data(recognizer: speech.Recognizer, data: speech.AudioData) -> None | str:
     out = None
     try:
-        # out = recognizer.recognize_vosk(data)
-        # out = recognizer.recognize_sphinx(data)
-        out = recognizer.recognize_google(data)
+        if SR_MODEL == SrModel.GOOGLE:
+            out = recognizer.recognize_google(data)
+        elif SR_MODEL == SrModel.WHISPER_API:
+            out = recognizer.recognize_whisper_api(data, api_key = WHISPER_API_KEY)
+        elif SR_MODEL == SrModel.WHISPER_LOCAL:
+            out = recognizer.recognize_whisper(data, model="small.en")
+        else:
+            raise Exception("SR_MODEL not set to a supported model.")
         print(out)
     except Exception as e:
         print("Listener error:", e)
@@ -240,7 +261,7 @@ RECOGNIZER.dynamic_energy_threshold = False
 MIC = speech.Microphone()
 with MIC as source:
     print("Adjusting mic noise threshold.")
-    RECOGNIZER.adjust_for_ambient_noise(source, 1.0)
+    RECOGNIZER.adjust_for_ambient_noise(source, 5.0)
 
 stop_listener = RECOGNIZER.listen_in_background(MIC, on_listener_heard)
 
