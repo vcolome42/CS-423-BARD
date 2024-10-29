@@ -3,6 +3,7 @@ from typing import Tuple
 
 import pygame as pg
 import speech_recognition as speech
+
 import sprites
 import items
 import core
@@ -29,6 +30,10 @@ if "API_KEY" in SECRETS:
 
 CONTROLS = True
 CHEATS = True
+
+# Print microphones as list
+# for i, microphone_name in enumerate(speech.Microphone.list_microphone_names()):
+#     print(i, microphone_name)
 
 game = core.Game()
 generate(game, 4, (32, 32))
