@@ -5,16 +5,11 @@ import random
 
 
 class Game:
-    ground: Set[Tuple[int, int]]
-    entities: list
-    controller_entity = None
-    walls: Set[Tuple[int, int]]
-    game_over = False
-    next_level = False
     def __init__(self):
-        self.ground = set()
-        self.entities = []
-        self.walls = set()
+        self.ground: Set[Tuple[int, int]] = set()
+        self.entities: list = []
+        self.walls: Set[Tuple[int, int]] = set()
+        self.controller_entity = None
         self.game_over = False
         self.next_level = False
         self.inventory_open = False
@@ -55,10 +50,11 @@ class Game:
         }
 
 class Entity:
-    grid_pos: Tuple[int, int]
-    sprite_idx: int = 15
-    collision: bool = False
-    destroyed: bool = False
+    def __init__(self, grid_pos: Tuple[int, int]):
+        self.grid_pos = grid_pos
+        self.sprite_idx: int = 15
+        self.collision: bool = False
+        self.destroyed: bool = False
     def with_grid_pos(self, grid_pos: Tuple[int, int]):
         self.grid_pos = grid_pos
         return self
@@ -102,8 +98,8 @@ class Entity:
         self.destroyed = True
 
 class Character(Entity):
-    def __init__(self, game: Game, health: int, attack_damage: int):
-        super().__init__()
+    def __init__(self, grid_pos: tuple[int, int], game: Game, health: int, attack_damage: int):
+        super().__init__(grid_pos)
         self.game = game
         self.health = health
         self.attack_damage = attack_damage
@@ -126,8 +122,9 @@ class Character(Entity):
 
 
 class Door(Entity):
-    opened: bool = False
-    def __init__(self):
+    def __init__(self, grid_pos: Tuple[int, int]):
+        super().__init__(grid_pos)
+        self.opened = False
         self.sprite_idx = 2
         self.collision = True
     def set_opened(self, opened: bool):
@@ -151,13 +148,15 @@ class Door(Entity):
         self.set_opened(not self.opened)
 
 class Stairs(Entity):
-    def __init__(self):
+    def __init__(self, grid_pos: Tuple[int, int]):
+        super().__init__(grid_pos)
         self.sprite_idx = 3
         self.collision = False
 
 class LockedDoor(Entity):
-    opened: bool = False
-    def __init__(self):
+    def __init__(self, grid_pos: Tuple[int, int]):
+        super().__init__(grid_pos)
+        self.opened: bool = False
         self.sprite_idx = 5
         self.collision = True
     def set_opened(self, opened: bool):
@@ -175,7 +174,6 @@ class LockedDoor(Entity):
         return super().get_flags().union({
             "opened" if self.opened else "closed"
         })
-
     def can_interact(self):
         return True
     def interact(self, user):
@@ -186,12 +184,11 @@ class LockedDoor(Entity):
                 print("You don't have a key")
 
 class ItemEntity(Entity):
-    def __init__(self, item: Item):
-        super().__init__()
+    def __init__(self, item: Item, grid_pos: Tuple[int, int]):
+        super().__init__(grid_pos)
         self.item = item
         self.sprite_idx = item.sprite_idx
         self.collision = False
-
     def get_synonym_list(self) -> Set[str]:
         return super().get_synonym_list().union({
             self.item.name.lower(),
@@ -257,7 +254,6 @@ class WaitAction:
     def act(self, user: Entity, game: Game):
         pass
 class TeleportAction(EntityAction):
-    target_pos: Tuple[int, int]
     def __init__(self, target_pos: Tuple[int, int]):
         self.target_pos = target_pos
     def is_valid(self, user: Entity, game: Game) -> bool:
@@ -266,7 +262,6 @@ class TeleportAction(EntityAction):
     def act(self, user: Entity, game: Game):
         user.grid_pos = self.target_pos
 class MoveAction(EntityAction):
-    delta_pos: Tuple[int, int]
     def __init__(self, delta_pos: Tuple[int, int]):
         self.delta_pos = delta_pos
     def is_valid(self, user: Entity, game: Game) -> bool:
@@ -348,7 +343,6 @@ class PickUpAction(EntityAction):
             print("No items nearby to pick up.")
 
 class InteractAction(EntityAction):
-    target: Entity
     def __init__(self, target: Entity):
         self.target = target
     def are_positions_adjacent(self, pos1: Tuple[int, int], pos2: Tuple[int, int]) -> bool:

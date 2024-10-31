@@ -2,13 +2,10 @@ import pygame
 from typing_extensions import Tuple
 
 class Spritesheet:
-    sheet: pygame.Surface
-    size: Tuple[int, int]
-    sprites: dict[int, pygame.Surface]
     def __init__(self, filepath: str, size: Tuple[int, int]):
-        self.sheet = pygame.image.load(filepath).convert_alpha()
-        self.size = size
-        self.sprites = {}
+        self.sheet: pygame.Surface = pygame.image.load(filepath).convert_alpha()
+        self.size: Tuple[int, int] = size
+        self.sprites: dict[int, pygame.Surface] = {}
         self.load_sprites()
     def load_sprites(self):
         idx = 0
