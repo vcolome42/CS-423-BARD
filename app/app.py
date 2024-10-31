@@ -56,26 +56,6 @@ clock = pg.time.Clock()
 tiles = sprites.Spritesheet("tiles.png", (4, 4))
 game_screen = pg.surface.Surface(SCREEN_SIZE)
 
-# Manual ask_voice system.
-# def ask_voice(recognizer: speech.Recognizer):
-#     out = None
-#     with speech.Microphone() as source:
-#         try:
-#             recognizer.adjust_for_ambient_noise(source, duration=0.3)
-#             print("Rec start.")
-#             audio_text = recognizer.listen(source, timeout=3.0, phrase_time_limit=5.0)
-#             print("Rec end.")
-#             out = recognizer.recognize_google(audio_text).lower()
-#             print("Text: " + out)
-#         except Exception as e:
-#             print("Sorry, I did not get that:", e)
-#     return out
-# def print_voice():
-#     global text_surf
-#     data = ask_voice(recognizer)
-#     text = f"Voice: {data}" if data else "Voice: No words recognized"
-#     text_surf = DEFAULT_FONT.render(text, False, (255, 255, 255))
-
 # Word to int (three -> 3)
 def word_to_num(word: str) -> int:
     word_to_number = {
@@ -232,17 +212,6 @@ def splash_text(text):
     screen.blit(render_text(text), (0, 0))
     pg.display.flip()
 
-# def decide_voice():
-#     global text_surf
-#     data = ask_voice(recognizer)
-#     text = f"Voice: { "\"{}\"".format(data) if data is not None else "None"}"
-#     text_surf = DEFAULT_FONT.render(text, False, (255, 255, 255))
-#     if data:
-#         parse_and_execute_command(data)
-#     else:
-#         print("Command not recognized.")
-#         text_surf = DEFAULT_FONT.render("Command not recognized.", False, (255, 0, 0))
-
 def recognize_data(recognizer: speech.Recognizer, data: speech.AudioData) -> None | str:
     out = None
     try:
@@ -318,10 +287,6 @@ def main_loop():
                             player.add_to_inventory(items.KeyItem())
                     if event.key == pg.K_1:
                         print(game.create_description())
-                # if event.key == pg.K_SPACE:
-                #     text = "LISTENING: "
-                #     text_surf = DEFAULT_FONT.render(text, False, (255, 255, 255))
-                #     decide_voice_debounce = True
         
         if game.game_over:
             # display  over screen
@@ -346,10 +311,6 @@ def main_loop():
 
         # flip buffer to display
         pg.display.flip()
-
-        # if decide_voice_debounce:
-        #     decide_voice()
-        #     decide_voice_debounce = False
 
         clock.tick(60)
 try:
