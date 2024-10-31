@@ -220,7 +220,7 @@ def recognize_data(recognizer: speech.Recognizer, data: speech.AudioData) -> Non
         elif SR_MODEL == SrModel.WHISPER_API:
             out = recognizer.recognize_whisper_api(data, api_key = WHISPER_API_KEY)
         elif SR_MODEL == SrModel.WHISPER_LOCAL:
-            out = recognizer.recognize_whisper(data, model="small.en")
+            out = recognizer.recognize_whisper(data, model="base.en")
         else:
             raise Exception("SR_MODEL not set to a supported model.")
         print("recognized:", out)
@@ -230,9 +230,9 @@ def recognize_data(recognizer: speech.Recognizer, data: speech.AudioData) -> Non
 
 def on_listener_heard(recognizer: speech.Recognizer, data: speech.AudioData):
     global text_surf
+    print("heard audio: ", data)
     vc_command = recognize_data(recognizer, data)
     text = f"Voice: {vc_command}" if vc_command else "Voice: No words recognized."
-    print("Heard:", vc_command)
     text_surf = DEFAULT_FONT.render(text, False, (255, 255, 255), (0, 0, 0))
     if vc_command:
         parse_and_execute_command(vc_command)
@@ -248,8 +248,9 @@ with MIC as source:
     print(hint)
     splash_text(hint)
     RECOGNIZER.adjust_for_ambient_noise(source, 5.0)
+    print("energy_threshold set to: ", RECOGNIZER.energy_threshold)
 
-stop_listener = RECOGNIZER.listen_in_background(MIC, on_listener_heard)
+stop_listener = RECOGNIZER.listen_in_background(MIC, on_listener_heard, 8.0)
 
 def main_loop():
     running = True
