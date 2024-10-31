@@ -119,22 +119,20 @@ def paint_node(node: BspNode, map: list[list[int]], game: Game):
     npc_classes = [Slime, Skeleton]
     for _ in range(num_npcs):
         npc_class = choice(npc_classes)
-        npc = npc_class(game)
         while True:
             npc_pos = (randint(inner.pos[0], inner.end()[0] - 1), randint(inner.pos[1], inner.end()[1] - 1))
             if valid_position(npc_pos[0], npc_pos[1], map, game):
-                npc.with_grid_pos(npc_pos)
+                npc = npc_class(npc_pos)
                 game.entities.append(npc)
                 break
     
     # Generate random potions
     num_potions = randint(0, 1)
     for _ in range(num_potions):
-        potion_entity = ItemEntity(HealingPotion())
         while True:
             potion_pos = (randint(inner.pos[0], inner.end()[0] - 1), randint(inner.pos[1], inner.end()[1] - 1))
             if valid_position(potion_pos[0], potion_pos[1], map, game):
-                potion_entity.with_grid_pos(potion_pos)
+                potion_entity = ItemEntity(HealingPotion(), potion_pos)
                 game.entities.append(potion_entity)
                 break
 
@@ -232,7 +230,7 @@ def add_doors(game: Game, map: list[list[int]]):
                                 if b[0] in (0, 2, 4, 6):
                                     continue
                             # print(origin_pos, voids)
-                            new_door = core.Door().with_grid_pos(origin_pos)
+                            new_door = core.Door(origin_pos)
                             door_map[y][x] = new_door
                             door_list.append(new_door)
     # choose one from any adjacent doors
@@ -343,8 +341,7 @@ def generate(game: Game, depth: int, size: Tuple[int, int]):
         player.grid_pos = player_pos
     else:
         player = (
-            core.Player(game)
-            .with_grid_pos(player_pos)
+            core.Player(player_pos)
         )
     game.entities.append(player)
     game.controller_entity = player
@@ -356,7 +353,7 @@ def generate(game: Game, depth: int, size: Tuple[int, int]):
             if valid_position(x, y, map, game):
                 end_pos_list.append((x, y))
     stairs_pos = random.choice(end_pos_list)
-    stairs = Stairs().with_grid_pos(stairs_pos)
+    stairs = Stairs(stairs_pos)
     game.entities.append(stairs)
     door = None
     door_dist = 0
@@ -371,7 +368,7 @@ def generate(game: Game, depth: int, size: Tuple[int, int]):
                     door = i
                     door_dist = i_dist
     door.destroy()
-    locked_door = LockedDoor().with_grid_pos(door.grid_pos)
+    locked_door = LockedDoor(door.grid_pos)
     game.entities.append(locked_door)
 
     key_room = pick_key_room(start, end)
@@ -380,5 +377,5 @@ def generate(game: Game, depth: int, size: Tuple[int, int]):
         for y in range(key_room.bounds.pos[1], key_room.bounds.end()[1]):
             if valid_position(x, y, map, game):
                 key_pos_list.append((x, y))
-    key_entity = ItemEntity(KeyItem()).with_grid_pos(random.choice(key_pos_list))
+    key_entity = ItemEntity(KeyItem(), random.choice(key_pos_list))
     game.entities.append(key_entity)

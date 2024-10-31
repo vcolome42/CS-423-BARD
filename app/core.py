@@ -28,6 +28,8 @@ class Game:
                 if isinstance(i, Stairs):
                     if i.grid_pos == self.controller_entity.grid_pos:
                         self.next_level = True
+            if self.controller_entity.destroyed:
+                self.game_over = True
 
     def create_occlusion_set(self) -> Set[Tuple[int, int]]:
         occ = set()
@@ -98,9 +100,8 @@ class Entity:
         self.destroyed = True
 
 class Character(Entity):
-    def __init__(self, grid_pos: tuple[int, int], game: Game, health: int, attack_damage: int):
+    def __init__(self, grid_pos: tuple[int, int], health: int, attack_damage: int):
         super().__init__(grid_pos)
-        self.game = game
         self.health = health
         self.attack_damage = attack_damage
 
@@ -116,10 +117,6 @@ class Character(Entity):
 
     def destroy(self):
         self.destroyed = True
-        if self == self.game.controller_entity:
-            print("game over")
-            self.game.game_over = True
-
 
 class Door(Entity):
     def __init__(self, grid_pos: Tuple[int, int]):
@@ -197,8 +194,8 @@ class ItemEntity(Entity):
         })
 
 class Player(Character):
-    def __init__(self, game: Game):
-        super().__init__(game, health=100, attack_damage=10)
+    def __init__(self, grid_pos: tuple[int, int]):
+        super().__init__(grid_pos, health=100, attack_damage=10)
         self.max_health = 100
         self.inventory = {}
         self.sprite_idx = 8
@@ -223,8 +220,8 @@ class Player(Character):
             return False
 
 class Slime(Character):
-    def __init__(self, game: Game):
-        super().__init__(game, health=20, attack_damage=5)
+    def __init__(self, grid_pos: tuple[int, int]):
+        super().__init__(grid_pos, health=20, attack_damage=5)
         self.sprite_idx = 9
         self.collision = True
     def get_synonym_list(self) -> Set[str]:
@@ -234,8 +231,8 @@ class Slime(Character):
         })
 
 class Skeleton(Character):
-    def __init__(self, game: Game):
-        super().__init__(game, health=30, attack_damage=7)
+    def __init__(self, grid_pos: tuple[int, int]):
+        super().__init__(grid_pos, health=30, attack_damage=7)
         self.sprite_idx = 13
         self.collision = True
     def get_synonym_list(self) -> Set[str]:
