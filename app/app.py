@@ -8,12 +8,22 @@ import sprites
 import items
 import core
 import re
-
 from dungeon import generate
-from commands import commands
 from dotenv import dotenv_values
 
+from commands import (
+    action_keywords,
+    direction_keywords,
+    item_keywords,
+    connectors,
+    number_words,
+    patterns,
+)
+
 SECRETS = dotenv_values(".env.secret")
+
+import ssl 
+ssl._create_default_https_context = ssl._create_unverified_context
 
 class SrModel:
     GOOGLE = 1
@@ -56,8 +66,8 @@ clock = pg.time.Clock()
 tiles = sprites.Spritesheet("tiles.png", (4, 4))
 game_screen = pg.surface.Surface(SCREEN_SIZE)
 
-# Word to int (three -> 3)
 def word_to_num(word: str) -> int:
+    word = word.lower()
     word_to_number = {
         "one": 1,
         "two": 2,
@@ -70,54 +80,104 @@ def word_to_num(word: str) -> int:
         "nine": 9,
         "ten": 10,
     }
-    return word_to_number.get(word.lower(), None)
+    return word_to_number.get(word, None)
 
-# parse and execute different commands
+
+
 def parse_and_execute_command(command: str):
-    command = command.lower()
     global text_surf
-    move_pattern = re.match(
-        r".*(left|right|up|down) (\d+|one|two|three|four|five|six|seven|eight|nine|ten)",
-        command,
-    )
-    commandFound = False
-    if move_pattern:
-        direction = move_pattern.group(1)
-        x = move_pattern.group(2)
-        if x.isdigit():
-            x = int(x)
-        else:
-            x = word_to_num(x)
-        if x is not None:
-            if direction == "left":
-                action = core.MoveAction((-x, 0))
-            elif direction == "right":
-                action = core.MoveAction((x, 0))
-            elif direction == "up":
-                action = core.MoveAction((0, -x))
-            elif direction == "down":
-                action = core.MoveAction((0, x))
-            player_decide(action)
-            commandFound = True
-        else:
-            print("Invalid number.")
-            text_surf = DEFAULT_FONT.render("Invalid number.", False, (255, 0, 0), (0, 0, 0))
-    for commandKeys in commands:
-        if commandKeys in command:
-            player_decide(commands[commandKeys])
-            commandFound = True
-    if not commandFound:
+    actions = parse_command_sequence(command)
+    if not actions:
         print("Command not recognized.")
         text_surf = DEFAULT_FONT.render("Command not recognized.", False, (255, 0, 0), (0, 0, 0))
+        return
 
+    for action in actions:
+        try:
+            action_type = action[0]
+            if action_type == "move":
+                _, dx, dy, steps = action
+                move_action = core.MoveAction((dx, dy), steps)
+                player_decide(move_action)
+            elif action_type == "move_until_obstacle":
+                _, dx, dy = action
+                move_until_obstacle_action = core.MoveUntilObstacleAction((dx, dy))
+                player_decide(move_until_obstacle_action)
+            elif action_type == "attack":
+                player_decide(core.AttackAction())
+            elif action_type == "pickup":
+                player_decide(core.PickUpAction())
+            elif action_type == "use":
+                _, item_name = action
+                player_decide(core.UseItemAction(item_name))
+            elif action_type == "interact":
+                player_decide(core.InteractEverything())
+            elif action_type == "open_inventory":
+                player_decide(core.OpenInventoryAction())
+            elif action_type == "close_inventory":
+                player_decide(core.CloseInventoryAction())
+            else:
+                print(f"Unhandled action type: {action_type}")
+        except Exception as e:
+            print(e)
+
+# parse and execute different commands
+def parse_command_sequence(command: str):
+    # Split the command
+    command_parts = re.split(r'\b(?:' + '|'.join(connectors) + r')\b', command)
+    actions = []
+    for part in command_parts:
+        part = part.strip()
+        if part:
+            action = parse_single_command(part)
+            if action:
+                actions.append(action)
+    return actions
+
+def parse_single_command(command: str):
+    command = command.lower()
+    if command in direction_keywords:
+        dx, dy = direction_keywords[command]
+        return ("move", dx, dy, 1)
+    for action_type, pattern in patterns.items():
+        match = re.match(pattern, command)
+        if match:
+            if action_type == "move":
+                direction = match.group("direction")
+                steps = match.group("steps")
+                if direction in direction_keywords:
+                    dx, dy = direction_keywords[direction]
+                    if steps:
+                        if steps in ["until", "till", "to"]:
+                            return ("move_until_obstacle", dx, dy)
+                        steps = word_to_num(steps) if steps.isalpha() else int(steps)
+                    else:
+                        steps = 1
+                    return ("move", dx, dy, steps)
+            elif action_type == "attack":
+                return ("attack",)
+            elif action_type == "pickup":
+                return ("pickup",)
+            elif action_type == "use":
+                item = match.group("item")
+                if item in item_keywords:
+                    return ("use", item_keywords[item])
+            elif action_type == "interact":
+                return ("interact",)
+            elif action_type == "open":
+                return ("open_inventory",)
+            elif action_type == "close":
+                return ("close_inventory",)
+    return None
 # decide_voice_debounce = False
 
 def player_decide(action: core.EntityAction):
     global text_surf
     player = game.controller_entity
     if action.is_valid(player, game):
-        action.act(player, game)
-        game.step()
+        player.action_queue.append(action)
+        # action.act(player, game)
+        # game.step()
     else:
         if isinstance(action, core.PickUpAction):
             text_surf = DEFAULT_FONT.render("No items nearby to pick up.", False, (255, 0, 0), (0, 0, 0))
@@ -241,16 +301,57 @@ def on_listener_heard(recognizer: speech.Recognizer, data: speech.AudioData):
         text_surf = DEFAULT_FONT.render("Command not recognized.", False, (255, 0, 0), (0, 0, 0))
 
 RECOGNIZER = speech.Recognizer()
-RECOGNIZER.dynamic_energy_threshold = False
+RECOGNIZER.dynamic_energy_threshold = True
 MIC = speech.Microphone()
 with MIC as source:
     hint = "Calibrating mic for noise. Please remain quiet."
     print(hint)
     splash_text(hint)
-    RECOGNIZER.adjust_for_ambient_noise(source, 5.0)
+    RECOGNIZER.adjust_for_ambient_noise(source, duration=2)
     print("energy_threshold set to: ", RECOGNIZER.energy_threshold)
 
-stop_listener = RECOGNIZER.listen_in_background(MIC, on_listener_heard, 8.0)
+stop_listener = RECOGNIZER.listen_in_background(MIC, on_listener_heard)
+
+def move_until_obstacle_step(action: core.MoveUntilObstacleAction, player):
+    target_pos = (player.grid_pos[0] + action.direction[0], player.grid_pos[1] + action.direction[1])
+    if target_pos not in game.create_occlusion_set():
+        player.grid_pos = target_pos
+        game.step()
+    else:
+        action.is_moving = False  # Stop movement
+
+def move_player_step(action: core.MoveAction, player):
+    target_pos = (player.grid_pos[0] + action.delta_pos[0], player.grid_pos[1] + action.delta_pos[1])
+
+    # Check if target position valid
+    if target_pos in game.create_occlusion_set():
+        print(f"Invalid move: {target_pos} is outside the map or blocked.")
+        action.steps_remaining = 0  # Stop the movement
+        return
+
+    # Move the player
+    player.grid_pos = target_pos
+    if action.steps_remaining is not None:
+        action.steps_remaining -= 1  # Decrement remaining steps
+    game.step()
+
+def process_player_action(action, player):
+    current_time = pg.time.get_ticks()  # Get the current time in milliseconds
+
+    if isinstance(action, core.MoveAction):
+        if current_time - player.last_move_time >= 400:  # Delay in milliseconds
+            if action.steps_remaining is None or action.steps_remaining <= 0:
+                print("No remaining steps or invalid action.")
+                return
+            move_player_step(action, player)
+            player.last_move_time = current_time
+    elif isinstance(action, core.MoveUntilObstacleAction):
+        if current_time - player.last_move_time >= 400:  # Delay in milliseconds
+            move_until_obstacle_step(action, player)
+            player.last_move_time = current_time
+    else:
+        action.act(player, game)
+        game.step()
 
 def main_loop():
     running = True
@@ -297,6 +398,20 @@ def main_loop():
             screen.blit(game_over_text, text_rect)
             pg.display.flip()
             continue
+            
+        player = game.controller_entity
+        if player and player.action_queue:
+            current_action = player.action_queue[0]
+            process_player_action(current_action, player)
+            if isinstance(current_action, core.MoveAction):
+                if current_action.steps_remaining <= 0:
+                    player.action_queue.pop(0) 
+            elif isinstance(current_action, core.MoveUntilObstacleAction):
+                if not current_action.is_moving:
+                    player.action_queue.pop(0)
+            else:
+                player.action_queue.pop(0)
+                game.step()
 
         # Render steps
         game_screen.fill("black")

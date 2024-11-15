@@ -199,6 +199,8 @@ class Player(Character):
         self.max_health = 100
         self.inventory = {}
         self.sprite_idx = 8
+        self.action_queue = []
+        self.last_move_time = 0
 
     def add_to_inventory(self, item: Item):
         if item.name in self.inventory:
@@ -259,13 +261,15 @@ class TeleportAction(EntityAction):
     def act(self, user: Entity, game: Game):
         user.grid_pos = self.target_pos
 class MoveAction(EntityAction):
-    def __init__(self, delta_pos: Tuple[int, int]):
+    def __init__(self, delta_pos: Tuple[int, int], steps: int = 1):
         self.delta_pos = delta_pos
+        self.steps_remaining = steps
     def is_valid(self, user: Entity, game: Game) -> bool:
         target_pos = user.grid_pos[0] + self.delta_pos[0], user.grid_pos[1] + self.delta_pos[1]
         game_occ = game.create_occlusion_set()
         return (target_pos not in game_occ)
     def act(self, user: Entity, game: Game):
+        pass
         target_pos = user.grid_pos[0] + self.delta_pos[0], user.grid_pos[1] + self.delta_pos[1]
         user.grid_pos = target_pos
 
@@ -273,8 +277,10 @@ class MoveAction(EntityAction):
 class MoveUntilObstacleAction(EntityAction):
     def __init__(self, direction: Tuple[int, int]):
         self.direction = direction
+        self.is_moving = True
 
     def act(self, user: Entity, game: Game):
+        pass
         while True:
             target_pos = (user.grid_pos[0] + self.direction[0], user.grid_pos[1] + self.direction[1])
             if target_pos in game.create_occlusion_set():
