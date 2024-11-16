@@ -72,6 +72,8 @@ class Entity:
         pass
     def get_label(self) -> str | None:
         return None
+    def get_suggestions(self) -> list[str] | None:
+        return None
 
     def get_synonym_list(self) -> Set[str]:
         return set()
@@ -151,6 +153,8 @@ class Door(Entity):
         self.set_opened(not self.opened)
     def get_label(self):
         return "door"
+    def get_suggestions(self):
+        return ["interact"]
 
 class Stairs(Entity):
     def __init__(self, grid_pos: Tuple[int, int]):
@@ -191,6 +195,8 @@ class LockedDoor(Entity):
                 print("You don't have a key")
     def get_label(self):
         return "locked door"
+    def get_suggestions(self):
+        return ["unlock"]
 
 class ItemEntity(Entity):
     def __init__(self, item: Item, grid_pos: Tuple[int, int]):
@@ -206,6 +212,8 @@ class ItemEntity(Entity):
         })
     def get_label(self):
         return self.item.name
+    def get_suggestions(self):
+        return ["pick up"]
 
 class Player(Character):
     def __init__(self, grid_pos: tuple[int, int]):
@@ -245,6 +253,8 @@ class Slime(Character):
         })
     def get_label(self):
         return "slime"
+    def get_suggestions(self):
+        return ["attack"]
 
 class Skeleton(Character):
     def __init__(self, grid_pos: tuple[int, int]):
@@ -258,6 +268,8 @@ class Skeleton(Character):
         })
     def get_label(self):
         return "skeleton"
+    def get_suggestions(self):
+        return ["attack"]
 
 class EntityAction:
     def is_valid(self, user: Entity, game: Game) -> bool:
