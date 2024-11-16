@@ -200,7 +200,10 @@ def view_grid_to_draw(gridpos: Tuple[int, int], view_pos: Tuple[int, int]) -> Tu
 
 DAMAGE_ANIM_DURATION = 600.0 # milliseconds
 
+# render_suggestions = list[tuple[str, str]]
 def render_game(game: core.Game):
+    # global render_suggestions
+    render_suggestions = []
     local_pos = (0, 0)
     if game.controller_entity:
         local_pos = game.controller_entity.grid_pos
@@ -245,13 +248,33 @@ def render_game(game: core.Game):
                     distance_y = abs(entity.grid_pos[1] - game.controller_entity.grid_pos[1])
                     if distance_x <= 1 and distance_y <= 1:
                         label = entity.get_label()
-                        if label != None:
+                        if label is not None:
                             label_text = INFO_FONT.render(label, False, (255, 255, 255)).convert_alpha()
                             label_text_rect = label_text.get_rect(center=view_grid_to_draw(entity.grid_pos, local_pos))
                             game_screen.blit(
                                 label_text,
                                 label_text_rect
                             )
+                        suggestions = entity.get_suggestions()
+                        if suggestions is not None:
+                            for suggestion in suggestions:
+                                render_suggestions.append((label, suggestion))
+    suggest_txt_list = ""
+    for suggestion in render_suggestions:
+        entity_label = suggestion[0]
+        suggestion = suggestion[1]
+        suggest_txt = suggestion
+        if entity_label is not None:
+            suggest_txt += f" ({entity_label})"
+        suggest_txt_list += suggest_txt + "\n"
+    if suggest_txt_list:
+        suggest_txt_list_disp = INFO_FONT.render(suggest_txt_list, False, (255, 255, 255)).convert_alpha()
+        rect = suggest_txt_list_disp.get_rect(bottomright=(SCREEN_SIZE[0], SCREEN_SIZE[1]))
+        game_screen.blit(
+            suggest_txt_list_disp,
+            rect
+        )
+
 
 def render_health_bar(surface, current_health, max_health, position=(85, 10), size=(70, 10)):
     health_ratio = current_health / max_health
