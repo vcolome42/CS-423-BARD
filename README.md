@@ -18,3 +18,7 @@ BARD's goal is to transform a classic game (Rogue) into a natural user experienc
 ```
 API_KEY=key
 ```
+
+# Assets Used
+Info Font: https://managore.itch.io/m3x6
+Daniel Linssen
