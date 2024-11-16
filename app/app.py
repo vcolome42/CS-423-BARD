@@ -57,6 +57,7 @@ clock = pg.time.Clock()
 
 tiles = sprites.Spritesheet("tiles.png", (4, 4))
 game_screen = pg.surface.Surface(SCREEN_SIZE)
+connectors = ["and", "then", "after that", "next", ".", ","]
 
 # Word to int (three -> 3)
 def word_to_num(word: str) -> int:
@@ -74,43 +75,81 @@ def word_to_num(word: str) -> int:
     }
     return word_to_number.get(word.lower(), None)
 
+def split_command(command):
+    for connector in connectors:
+        command = command.replace(connector, "|")
+    return command.split("|")
+
 # parse and execute different commands
 def parse_and_execute_command(command: str):
     command = command.lower()
     global text_surf
-    move_pattern = re.match(
-        r".*(left|right|up|down) (\d+|one|two|three|four|five|six|seven|eight|nine|ten)",
-        command,
-    )
-    commandFound = False
-    if move_pattern:
-        direction = move_pattern.group(1)
-        x = move_pattern.group(2)
-        if x.isdigit():
-            x = int(x)
-        else:
-            x = word_to_num(x)
-        if x is not None:
+
+    # Split command into parts
+    parts = split_command(command)
+
+    print(parts)
+    for part in parts:
+        part = part.strip()
+        if not part:
+            continue
+
+        move_pattern = re.match(
+            r".*(left|right|up|down) (\d+|one|two|three|four|five|six|seven|eight|nine|ten)",
+            part,
+        )
+        commandFound = False
+        print(move_pattern)
+        # Check for move {direction} {spaces} command
+        if move_pattern:
+            direction = move_pattern.group(1)
+            x = move_pattern.group(2)
+            if x.isdigit():
+                x = int(x)
+            else:
+                x = word_to_num(x)
+            if x is not None:
+                if direction == "left":
+                    action = core.MoveAction((-x, 0))
+                elif direction == "right":
+                    action = core.MoveAction((x, 0))
+                elif direction == "up":
+                    action = core.MoveAction((0, -x))
+                elif direction == "down":
+                    action = core.MoveAction((0, x))
+                player_decide(action)
+                commandFound = True
+            else:
+                print("Invalid number.")
+                text_surf = DEFAULT_FONT.render("Invalid number.", False, (255, 0, 0), (0, 0, 0))
+            continue
+
+        # Check for move {direction} command
+        move_short_pattern = re.match(r".*(left|right|up|down)", part)
+        if move_short_pattern:
+            direction = move_short_pattern.group(1)
             if direction == "left":
-                action = core.MoveAction((-x, 0))
+                action = core.MoveAction((-1, 0))
             elif direction == "right":
-                action = core.MoveAction((x, 0))
+                action = core.MoveAction((1, 0))
             elif direction == "up":
-                action = core.MoveAction((0, -x))
+                action = core.MoveAction((0, -1))
             elif direction == "down":
-                action = core.MoveAction((0, x))
+                action = core.MoveAction((0, 1))
             player_decide(action)
             commandFound = True
-        else:
-            print("Invalid number.")
-            text_surf = DEFAULT_FONT.render("Invalid number.", False, (255, 0, 0), (0, 0, 0))
-    for commandKeys in commands:
-        if commandKeys in command:
-            player_decide(commands[commandKeys])
-            commandFound = True
-    if not commandFound:
-        print("Command not recognized.")
-        text_surf = DEFAULT_FONT.render("Command not recognized.", False, (255, 0, 0), (0, 0, 0))
+            continue
+
+        # Check for other commands
+        for commandKey in commands:
+            if commandKey in part:
+                player_decide(commands[commandKey])
+                commandFound = True
+                break
+
+        if not commandFound:
+            print("Command not recognized.")
+            text_surf = DEFAULT_FONT.render("Command not recognized.", False, (255, 0, 0), (0, 0, 0))
 
 # decide_voice_debounce = False
 
@@ -156,8 +195,8 @@ def render_game(game: core.Game):
                 sprite = tiles.get_sprite(entity.sprite_idx)
                 # sprite_mask = tiles.get_mask(entity.sprite_idx)
 
-                entity_blit = pg.Surface(sprite.size, pg.SRCALPHA).convert_alpha()
-                entity_blit.blit(sprite)
+                entity_blit = pg.Surface(sprite.get_size(), pg.SRCALPHA).convert_alpha()
+                entity_blit.blit(sprite, (0,0))
 
                 if isinstance(entity, core.Character):
                     if entity.damaged_hint_check:
