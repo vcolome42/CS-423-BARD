@@ -135,6 +135,8 @@ def view_grid_to_draw(gridpos: Tuple[int, int], view_pos: Tuple[int, int]) -> Tu
     y += SCREEN_SIZE[1] / 2
     return (x, y)
 
+DAMAGE_ANIM_DURATION = 600.0 # milliseconds
+
 def render_game(game: core.Game):
     local_pos = (0, 0)
     if game.controller_entity:
@@ -146,8 +148,34 @@ def render_game(game: core.Game):
     for entity in game.entities:
         if not entity.destroyed:  # Check if the entity is not destroyed
             if entity.sprite_idx != -1:
+                sprite = tiles.get_sprite(entity.sprite_idx)
+                # sprite_mask = tiles.get_mask(entity.sprite_idx)
+
+                entity_blit = pg.Surface(sprite.size, pg.SRCALPHA).convert_alpha()
+                entity_blit.blit(sprite)
+
+                if isinstance(entity, core.Character):
+                    if entity.damaged_hint_check:
+                        entity.damaged_hint_check = False
+                        entity.damaged_hint_frame = elapsed
+                        entity.damaged_hint = True
+                    if entity.damaged_hint:
+                        first_damaged = entity.damaged_hint_frame
+                        elapsed_damaged = elapsed - first_damaged
+                        alpha_mult = max(DAMAGE_ANIM_DURATION - float(elapsed_damaged), 0.0) / DAMAGE_ANIM_DURATION
+                        alpha_col = int(alpha_mult * 255.0)
+
+                        # TODO: use mask to render damage highlight.
+                        highlight_surface = pg.Surface(sprite.get_size(), pg.SRCALPHA).convert_alpha()
+                        highlight_surface.fill((255, 0, 0, alpha_col), special_flags=pg.BLEND_RGBA_ADD)
+                        entity_blit.blit(highlight_surface, (0, 0))
+
+                        if alpha_col <= 0:
+                            entity.damaged_hint = False
+                            entity.damaged_hint_frame = -1
+
                 game_screen.blit(
-                    tiles.get_sprite(entity.sprite_idx), view_grid_to_draw(entity.grid_pos, local_pos)
+                    entity_blit, view_grid_to_draw(entity.grid_pos, local_pos)
                 )
 
 def render_health_bar(surface, current_health, max_health, position=(85, 10), size=(70, 10)):
@@ -252,9 +280,58 @@ with MIC as source:
 
 stop_listener = RECOGNIZER.listen_in_background(MIC, on_listener_heard, 8.0)
 
+def move_until_obstacle_step(action: core.MoveUntilObstacleAction, player):
+    target_pos = (player.grid_pos[0] + action.direction[0], player.grid_pos[1] + action.direction[1])
+    if target_pos not in game.create_occlusion_set():
+        player.grid_pos = target_pos
+        game.step()
+    else:
+        action.is_moving = False  # Stop movement
+
+def move_player_step(action: core.MoveAction, player):
+    target_pos = (player.grid_pos[0] + action.delta_pos[0], player.grid_pos[1] + action.delta_pos[1])
+
+    # Check if target position valid
+    if target_pos in game.create_occlusion_set():
+        print(f"Invalid move: {target_pos} is outside the map or blocked.")
+        action.steps_remaining = 0  # Stop the movement
+        return
+
+    # Move the player
+    player.grid_pos = target_pos
+    if action.steps_remaining is not None:
+        action.steps_remaining -= 1  # Decrement remaining steps
+    game.step()
+
+def process_player_action(action, player):
+    current_time = pg.time.get_ticks()  # Get the current time in milliseconds
+
+    if isinstance(action, core.MoveAction):
+        if current_time - player.last_move_time >= 400:  # Delay in milliseconds
+            if action.steps_remaining is None or action.steps_remaining <= 0:
+                print("No remaining steps or invalid action.")
+                return
+            move_player_step(action, player)
+            player.last_move_time = current_time
+    elif isinstance(action, core.MoveUntilObstacleAction):
+        if current_time - player.last_move_time >= 400:  # Delay in milliseconds
+            move_until_obstacle_step(action, player)
+            player.last_move_time = current_time
+    else:
+        action.act(player, game)
+        game.step()
+
+elapsed = 0
+delta = 0
+
 def main_loop():
+    global elapsed
+    global delta
     running = True
     while running:
+        delta = clock.tick(60)
+        elapsed += delta
+
         player: core.Player | None = None
         if game.controller_entity:
             player = game.controller_entity
@@ -313,10 +390,11 @@ def main_loop():
         # flip buffer to display
         pg.display.flip()
 
-        clock.tick(60)
+import traceback
 try:
     main_loop()
 except Exception as e:
     print(f"Game crashed: {e}")
+    traceback.print_exc()
 pg.quit()
 stop_listener(False)
