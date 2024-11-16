@@ -104,9 +104,13 @@ class Character(Entity):
         super().__init__(grid_pos)
         self.health = health
         self.attack_damage = attack_damage
+        self.damaged_hint_check = False
+        self.damaged_hint = False
+        self.damaged_hint_frame = -1
 
     def take_damage(self, damage: int):
         self.health -= damage
+        self.damaged_hint_check = True
         if self.health <= 0:
             self.destroy()
 

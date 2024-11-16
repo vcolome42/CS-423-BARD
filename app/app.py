@@ -8,6 +8,7 @@ import sprites
 import items
 import core
 import re
+
 from dungeon import generate
 from dotenv import dotenv_values
 
@@ -195,6 +196,8 @@ def view_grid_to_draw(gridpos: Tuple[int, int], view_pos: Tuple[int, int]) -> Tu
     y += SCREEN_SIZE[1] / 2
     return (x, y)
 
+DAMAGE_ANIM_DURATION = 600.0 # milliseconds
+
 def render_game(game: core.Game):
     local_pos = (0, 0)
     if game.controller_entity:
@@ -206,8 +209,34 @@ def render_game(game: core.Game):
     for entity in game.entities:
         if not entity.destroyed:  # Check if the entity is not destroyed
             if entity.sprite_idx != -1:
+                sprite = tiles.get_sprite(entity.sprite_idx)
+                # sprite_mask = tiles.get_mask(entity.sprite_idx)
+
+                entity_blit = pg.Surface(sprite.size, pg.SRCALPHA).convert_alpha()
+                entity_blit.blit(sprite)
+
+                if isinstance(entity, core.Character):
+                    if entity.damaged_hint_check:
+                        entity.damaged_hint_check = False
+                        entity.damaged_hint_frame = elapsed
+                        entity.damaged_hint = True
+                    if entity.damaged_hint:
+                        first_damaged = entity.damaged_hint_frame
+                        elapsed_damaged = elapsed - first_damaged
+                        alpha_mult = max(DAMAGE_ANIM_DURATION - float(elapsed_damaged), 0.0) / DAMAGE_ANIM_DURATION
+                        alpha_col = int(alpha_mult * 255.0)
+
+                        # TODO: use mask to render damage highlight.
+                        highlight_surface = pg.Surface(sprite.get_size(), pg.SRCALPHA).convert_alpha()
+                        highlight_surface.fill((255, 0, 0, alpha_col), special_flags=pg.BLEND_RGBA_ADD)
+                        entity_blit.blit(highlight_surface, (0, 0))
+
+                        if alpha_col <= 0:
+                            entity.damaged_hint = False
+                            entity.damaged_hint_frame = -1
+
                 game_screen.blit(
-                    tiles.get_sprite(entity.sprite_idx), view_grid_to_draw(entity.grid_pos, local_pos)
+                    entity_blit, view_grid_to_draw(entity.grid_pos, local_pos)
                 )
 
 def render_health_bar(surface, current_health, max_health, position=(85, 10), size=(70, 10)):
@@ -301,16 +330,16 @@ def on_listener_heard(recognizer: speech.Recognizer, data: speech.AudioData):
         text_surf = DEFAULT_FONT.render("Command not recognized.", False, (255, 0, 0), (0, 0, 0))
 
 RECOGNIZER = speech.Recognizer()
-RECOGNIZER.dynamic_energy_threshold = True
+RECOGNIZER.dynamic_energy_threshold = False
 MIC = speech.Microphone()
 with MIC as source:
     hint = "Calibrating mic for noise. Please remain quiet."
     print(hint)
     splash_text(hint)
-    RECOGNIZER.adjust_for_ambient_noise(source, duration=2)
+    RECOGNIZER.adjust_for_ambient_noise(source, duration=5.0)
     print("energy_threshold set to: ", RECOGNIZER.energy_threshold)
 
-stop_listener = RECOGNIZER.listen_in_background(MIC, on_listener_heard)
+stop_listener = RECOGNIZER.listen_in_background(MIC, on_listener_heard, 8.0)
 
 def move_until_obstacle_step(action: core.MoveUntilObstacleAction, player):
     target_pos = (player.grid_pos[0] + action.direction[0], player.grid_pos[1] + action.direction[1])
@@ -353,9 +382,17 @@ def process_player_action(action, player):
         action.act(player, game)
         game.step()
 
+elapsed = 0
+delta = 0
+
 def main_loop():
+    global elapsed
+    global delta
     running = True
     while running:
+        delta = clock.tick(60)
+        elapsed += delta
+
         player: core.Player | None = None
         if game.controller_entity:
             player = game.controller_entity
@@ -405,7 +442,7 @@ def main_loop():
             process_player_action(current_action, player)
             if isinstance(current_action, core.MoveAction):
                 if current_action.steps_remaining <= 0:
-                    player.action_queue.pop(0) 
+                    player.action_queue.pop(0)
             elif isinstance(current_action, core.MoveUntilObstacleAction):
                 if not current_action.is_moving:
                     player.action_queue.pop(0)
@@ -428,10 +465,11 @@ def main_loop():
         # flip buffer to display
         pg.display.flip()
 
-        clock.tick(60)
+import traceback
 try:
     main_loop()
 except Exception as e:
     print(f"Game crashed: {e}")
+    traceback.print_exc()
 pg.quit()
 stop_listener(False)
