@@ -8,6 +8,7 @@ action_keywords = {
     "strike": "attack",
     "hit": "attack",
     "fight": "attack",
+    "defeat": "attack",
     "pick up": "pickup",
     "take": "pickup",
     "grab": "pickup",
@@ -25,8 +26,16 @@ direction_keywords = {
     "right": (1, 0),
     "up": (0, -1),
     "down": (0, 1),
-    "forward": (0, -1),
-    "backward": (0, 1),
+    "to the left": (-1, 0),
+    "to the right": (1, 0),
+    "to the top": (0, -1),
+    "to the bottom": (0, 1),
+    "west": (-1, 0),
+    "east": (1, 0),
+    "north": (0, -1),
+    "south": (0, 1),
+    # "forward": (0, -1),  # these are relative/subjective to player
+    # "backward": (0, 1),
 }
 
 item_keywords = {
@@ -34,7 +43,7 @@ item_keywords = {
     "health potion": "Health Potion",
 }
 
-connectors = ["and", "then", "after that", "next"]
+connectors = ["and", "then", "after that", "next", ".", ","]
 
 number_words = {
     "one": 1,
