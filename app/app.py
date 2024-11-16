@@ -53,8 +53,10 @@ generate(game, 4, (32, 32))
 pg.init()
 pg.font.init()
 
-DEFAULT_FONT = pg.font.SysFont("Arial", 24)
+DEFAULT_FONT = pg.font.SysFont("Arial", 12)
 text_surf = DEFAULT_FONT.render("", False, (255, 255, 255), (0, 0, 0))
+
+INFO_FONT = pg.font.Font("m3x6.ttf", 16)
 
 SCREEN_SIZE = (240, 144)
 RENDER_SCALE = 2
@@ -238,6 +240,18 @@ def render_game(game: core.Game):
                 game_screen.blit(
                     entity_blit, view_grid_to_draw(entity.grid_pos, local_pos)
                 )
+                if game.controller_entity:
+                    distance_x = abs(entity.grid_pos[0] - game.controller_entity.grid_pos[0])
+                    distance_y = abs(entity.grid_pos[1] - game.controller_entity.grid_pos[1])
+                    if distance_x <= 1 and distance_y <= 1:
+                        label = entity.get_label()
+                        if label != None:
+                            label_text = INFO_FONT.render(label, False, (255, 255, 255)).convert_alpha()
+                            label_text_rect = label_text.get_rect(center=view_grid_to_draw(entity.grid_pos, local_pos))
+                            game_screen.blit(
+                                label_text,
+                                label_text_rect
+                            )
 
 def render_health_bar(surface, current_health, max_health, position=(85, 10), size=(70, 10)):
     health_ratio = current_health / max_health
