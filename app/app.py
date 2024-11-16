@@ -68,21 +68,7 @@ game_screen = pg.surface.Surface(SCREEN_SIZE)
 
 def word_to_num(word: str) -> int:
     word = word.lower()
-    word_to_number = {
-        "one": 1,
-        "two": 2,
-        "three": 3,
-        "four": 4,
-        "five": 5,
-        "six": 6,
-        "seven": 7,
-        "eight": 8,
-        "nine": 9,
-        "ten": 10,
-    }
-    return word_to_number.get(word, None)
-
-
+    return number_words.get(word, None)
 
 def parse_and_execute_command(command: str):
     global text_surf
@@ -104,18 +90,18 @@ def parse_and_execute_command(command: str):
                 move_until_obstacle_action = core.MoveUntilObstacleAction((dx, dy))
                 player_decide(move_until_obstacle_action)
             elif action_type == "attack":
-                player_decide(core.AttackAction())
+                player_decide_nodelay(core.AttackAction())
             elif action_type == "pickup":
-                player_decide(core.PickUpAction())
+                player_decide_nodelay(core.PickUpAction())
             elif action_type == "use":
                 _, item_name = action
-                player_decide(core.UseItemAction(item_name))
+                player_decide_nodelay(core.UseItemAction(item_name))
             elif action_type == "interact":
-                player_decide(core.InteractEverything())
+                player_decide_nodelay(core.InteractEverything())
             elif action_type == "open_inventory":
-                player_decide(core.OpenInventoryAction())
+                player_decide_nodelay(core.OpenInventoryAction())
             elif action_type == "close_inventory":
-                player_decide(core.CloseInventoryAction())
+                player_decide_nodelay(core.CloseInventoryAction())
             else:
                 print(f"Unhandled action type: {action_type}")
         except Exception as e:
@@ -178,6 +164,20 @@ def player_decide(action: core.EntityAction):
         player.action_queue.append(action)
         # action.act(player, game)
         # game.step()
+    else:
+        if isinstance(action, core.PickUpAction):
+            text_surf = DEFAULT_FONT.render("No items nearby to pick up.", False, (255, 0, 0), (0, 0, 0))
+        elif isinstance(action, core.InteractEverything):
+            text_surf = DEFAULT_FONT.render("No interactables.", False, (255, 0, 0), (0, 0, 0))
+        else:
+            text_surf = DEFAULT_FONT.render("Action is not valid.", False, (255, 0, 0), (0, 0, 0))
+
+def player_decide_nodelay(action: core.EntityAction):
+    global text_surf
+    player = game.controller_entity
+    if action.is_valid(player, game):
+        action.act(player, game)
+        game.step()
     else:
         if isinstance(action, core.PickUpAction):
             text_surf = DEFAULT_FONT.render("No items nearby to pick up.", False, (255, 0, 0), (0, 0, 0))
@@ -369,20 +369,20 @@ def main_loop():
                 running = False
             if event.type == pg.KEYUP and CONTROLS:
                 if event.key == pg.K_DOWN:
-                    player_decide(core.MoveAction((0, 1)))
+                    player_decide_nodelay(core.MoveAction((0, 1)))
                 if event.key == pg.K_UP:
-                    player_decide(core.MoveAction((0, -1)))
+                    player_decide_nodelay(core.MoveAction((0, -1)))
                 if event.key == pg.K_LEFT:
-                    player_decide(core.MoveAction((-1, 0)))
+                    player_decide_nodelay(core.MoveAction((-1, 0)))
                 if event.key == pg.K_RIGHT:
-                    player_decide(core.MoveAction((1, 0)))
+                    player_decide_nodelay(core.MoveAction((1, 0)))
                 if event.key == pg.K_i:
                     if game.inventory_open:
-                        player_decide(core.CloseInventoryAction())
+                        player_decide_nodelay(core.CloseInventoryAction())
                     else:
-                        player_decide(core.OpenInventoryAction())
+                        player_decide_nodelay(core.OpenInventoryAction())
                 if event.key == pg.K_e:
-                    player_decide(core.InteractEverything())
+                    player_decide_nodelay(core.InteractEverything())
                 if CHEATS:
                     if event.key == pg.K_0:
                         if player:
