@@ -13,22 +13,30 @@ MAX_SIZE_ROOMS = False
 MIN_PADDING = 1
 MIN_ROOM_SIZE = 4
 
+
 class Rect:
     pos: Tuple[int, int]
     size: Tuple[int, int]
+
     def __init__(self, pos, size):
         self.pos = pos
         self.size = size
+
     def x(self):
         return self.pos[0]
+
     def y(self):
         return self.pos[1]
+
     def width(self):
         return self.size[0]
+
     def height(self):
         return self.size[1]
+
     def end(self):
         return (self.pos[0] + self.size[0], self.pos[1] + self.size[1])
+
 
 class BspNode:
     def __init__(self, bounds: Rect, split_dir: int, parent):
@@ -36,6 +44,7 @@ class BspNode:
         self.children = []
         self.split_dir = split_dir
         self.parent = parent
+
     def split(self, depth: int):
         # print("split ", depth)
         if depth == 0:
@@ -43,16 +52,22 @@ class BspNode:
         a, b = split_rect(self.bounds, self.split_dir)
         # print(a.size, a.width() >= MIN_BOUNDS_SIZE and a.height() >= MIN_BOUNDS_SIZE)
         # print(b.size, b.width() >= MIN_BOUNDS_SIZE and b.height() >= MIN_BOUNDS_SIZE)
-        if a.width() >= MIN_BOUNDS_SIZE and a.height() >= MIN_BOUNDS_SIZE\
-            and b.width() >= MIN_BOUNDS_SIZE and b.height() >= MIN_BOUNDS_SIZE:
+        if (
+            a.width() >= MIN_BOUNDS_SIZE
+            and a.height() >= MIN_BOUNDS_SIZE
+            and b.width() >= MIN_BOUNDS_SIZE
+            and b.height() >= MIN_BOUNDS_SIZE
+        ):
             new_split = 1 if self.split_dir == 0 else 0
             self.children.append(BspNode(a, new_split, self))
             self.children.append(BspNode(b, new_split, self))
             for child in self.children:
                 child.split(depth - 1)
 
+
 def split_factor():
     return randomFix.random() * (SPLIT_RANGE[1] - SPLIT_RANGE[0]) + SPLIT_RANGE[0]
+
 
 def split_rect(container: Rect, split_dir: int) -> Tuple[Rect, Rect]:
     start = container.pos
@@ -81,6 +96,7 @@ def split_rect(container: Rect, split_dir: int) -> Tuple[Rect, Rect]:
         )
         return a, b
 
+
 def valid_position(x, y, map, game):
     if map[y][x] != 1:
         return False
@@ -89,12 +105,13 @@ def valid_position(x, y, map, game):
             return False
     return True
 
+
 def paint_node(node: BspNode, map: list[list[int]], game: Game):
     if node.children:
         for child in node.children:
             paint_node(child, map, game)
         return
-    
+
     room_width = randint(MIN_ROOM_SIZE, node.bounds.width() - MIN_PADDING * 2)
     room_height = randint(MIN_ROOM_SIZE, node.bounds.height() - MIN_PADDING * 2)
     margin_width = node.bounds.width() - room_width
@@ -120,21 +137,28 @@ def paint_node(node: BspNode, map: list[list[int]], game: Game):
     for _ in range(num_npcs):
         npc_class = choice(npc_classes)
         while True:
-            npc_pos = (randint(inner.pos[0], inner.end()[0] - 1), randint(inner.pos[1], inner.end()[1] - 1))
+            npc_pos = (
+                randint(inner.pos[0], inner.end()[0] - 1),
+                randint(inner.pos[1], inner.end()[1] - 1),
+            )
             if valid_position(npc_pos[0], npc_pos[1], map, game):
                 npc = npc_class(npc_pos)
                 game.entities.append(npc)
                 break
-    
+
     # Generate random potions
     num_potions = randint(0, 1)
     for _ in range(num_potions):
         while True:
-            potion_pos = (randint(inner.pos[0], inner.end()[0] - 1), randint(inner.pos[1], inner.end()[1] - 1))
+            potion_pos = (
+                randint(inner.pos[0], inner.end()[0] - 1),
+                randint(inner.pos[1], inner.end()[1] - 1),
+            )
             if valid_position(potion_pos[0], potion_pos[1], map, game):
                 potion_entity = ItemEntity(HealingPotion(), potion_pos)
                 game.entities.append(potion_entity)
                 break
+
 
 def paint_corridors(node: BspNode, map: list[list[int]]):
     if node.children:
@@ -157,12 +181,14 @@ def paint_corridors(node: BspNode, map: list[list[int]]):
         for child_node in node.children:
             paint_corridors(child_node, map)
 
+
 def place_npcs(node: BspNode, game: Game, rooms: list[BspNode]):
     if node.children:
         for child in node.children:
             place_npcs(child, game, rooms)
         return
     rooms.append(node)
+
 
 NEIGHBOR_INDICES = [
     (-1, -1),
@@ -174,11 +200,15 @@ NEIGHBOR_INDICES = [
     (-1, 1),
     (-1, 0),
 ]
+
+
 def neighbor_idx_dist(a: int, b: int):
     if b > a:
         return min(b - a, 7 - (b - a - 1))
     else:
         return min(a - b, 7 - (a - b - 1))
+
+
 def add_doors(game: Game, map: list[list[int]]):
     map_y = len(map)
     map_x = len(map[0])
@@ -186,32 +216,33 @@ def add_doors(game: Game, map: list[list[int]]):
     door_list = []
     # Cannot handle bounds cases, [1, row/col)
     for y in range(1, len(map) - 2):
-        row = map[y]
-        for x in range(1, len(row) - 2):
+        for x in range(1, len(map[0]) - 2):
             origin_pos = (x, y)
             tile = map[y][x]
             if tile == 1:
-                voids = [] # Don't know what else to call a subsequence sequence of empty spaces.
+                voids = (
+                    []
+                )  # Don't know what else to call a subsequence sequence of empty spaces.
                 void = []
                 for nb_idx in range(len(NEIGHBOR_INDICES)):
                     offset = NEIGHBOR_INDICES[nb_idx]
                     nb_pos = (x + offset[0], y + offset[1])
                     grid_tile = map[nb_pos[1]][nb_pos[0]]
                     # grid_valid = valid_position(nb_pos[0], nb_pos[1], map, game)
-                    if len(void) == 0: # case 1, void is empty
+                    if len(void) == 0:  # case 1, void is empty
                         if grid_tile == 1:
                             void.append(nb_idx)
-                    else: # case 2, void has other tiles
+                    else:  # case 2, void has other tiles
                         if grid_tile == 1:
                             void.append(nb_idx)
-                        else: # case 2b: make a new void if it's solid
+                        else:  # case 2b: make a new void if it's solid
                             voids.append(void)
                             void = []
                 if void:
                     voids.append(void)
                     void = []
 
-                if len(voids) >= 2: # connect start and end if they can connect
+                if len(voids) >= 2:  # connect start and end if they can connect
                     first_void = voids[0]
                     last_void = voids[len(voids) - 1]
                     start_fv = first_void[0]
@@ -222,8 +253,10 @@ def add_doors(game: Game, map: list[list[int]]):
                     a = voids[0]
                     b = voids[1]
                     if len(a) <= 3 and len(b) <= 3:
-                        if (len(a) >= 2 and len(b) == 1) or (len(a) == 1 and len(b) >= 2):
-                            if a == 1: # neither can just be a corner
+                        if (len(a) >= 2 and len(b) == 1) or (
+                            len(a) == 1 and len(b) >= 2
+                        ):
+                            if a == 1:  # neither can just be a corner
                                 if a[0] in (0, 2, 4, 6):
                                     continue
                             elif b == 1:
@@ -234,8 +267,8 @@ def add_doors(game: Game, map: list[list[int]]):
                             door_map[y][x] = new_door
                             door_list.append(new_door)
     # choose one from any adjacent doors
-    for y in range(1, map_x - 2):
-        for x in range(1, map_y - 2):
+    for y in range(1, map_y - 2):
+        for x in range(1, map_x - 2):
             # if (x, y) in checked:
             #     continue
             if door_map[y][x] is not None:
@@ -261,17 +294,18 @@ def add_doors(game: Game, map: list[list[int]]):
                 for i in door_list.copy():
                     if i in adj_doors and i != final_door:
                         door_list.remove(i)
-    for y in range(1, map_x - 2):
-        for x in range(1, map_y - 2):
+    for y in range(1, map_y - 2):
+        for x in range(1, map_x - 2):
             door_check = door_map[y][x]
             if door_check is not None and door_check in door_list:
                 game.entities.append(door_map[y][x])
 
 
-def print_rec(node: BspNode, depth:int = 0):
+def print_rec(node: BspNode, depth: int = 0):
     # print(depth, "\t" * depth, node.bounds.pos, node.bounds.size)
     for i in node.children:
         print_rec(i, depth + 1)
+
 
 # Picks a room that the player can access and is not locked.
 def pick_key_room(player_room: BspNode, end_room: BspNode):
@@ -290,6 +324,7 @@ def pick_key_room(player_room: BspNode, end_room: BspNode):
     _pick_key_room_rec(top_valid, valid_rooms)
     return random.choice(valid_rooms)
 
+
 def _pick_key_room_rec(node: BspNode, room_list: list[BspNode]):
     if node.children:
         for child in node.children:
@@ -299,17 +334,18 @@ def _pick_key_room_rec(node: BspNode, room_list: list[BspNode]):
 
 
 def generate(game: Game, depth: int, size: Tuple[int, int]):
+    # upto z
+    width = min(size[0], 26)
+    height = size[1]
+
     game.entities = []
     game.walls = set()
     game.ground = set()
 
-    width = size[0]
-    height = size[1]
     map = [[0 for x in range(width)] for y in range(height)]
     split_dir = randint(0, 1)
-    root_node = BspNode(Rect((0, 0), size), split_dir, None)
+    root_node = BspNode(Rect((0, 0), (width, height)), split_dir, None)
     root_node.split(depth)
-    # print_rec(root_node, 0)
     paint_node(root_node, map, game)
     paint_corridors(root_node, map)
     add_doors(game, map)
@@ -340,9 +376,7 @@ def generate(game: Game, depth: int, size: Tuple[int, int]):
     if player is not None:
         player.grid_pos = player_pos
     else:
-        player = (
-            core.Player(player_pos)
-        )
+        player = core.Player(player_pos)
     game.entities.append(player)
     game.controller_entity = player
     # print("dungeon")
@@ -359,7 +393,10 @@ def generate(game: Game, depth: int, size: Tuple[int, int]):
     door_dist = 0
     for i in game.entities:
         if isinstance(i, Door):
-            i_dist = math.sqrt((stairs_pos[0] - i.grid_pos[0]) ** 2 + (stairs_pos[1] - i.grid_pos[1]) ** 2)
+            i_dist = math.sqrt(
+                (stairs_pos[0] - i.grid_pos[0]) ** 2
+                + (stairs_pos[1] - i.grid_pos[1]) ** 2
+            )
             if door is None:
                 door = i
                 door_dist = i_dist
