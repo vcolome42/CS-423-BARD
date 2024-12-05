@@ -2,13 +2,11 @@ import pygame
 from typing_extensions import Tuple
 
 class Spritesheet:
-    sheet: pygame.Surface
-    size: Tuple[int, int]
-    sprites: dict[int, pygame.Surface]
     def __init__(self, filepath: str, size: Tuple[int, int]):
-        self.sheet = pygame.image.load(filepath).convert_alpha()
-        self.size = size
-        self.sprites = {}
+        self.sheet: pygame.Surface = pygame.image.load(filepath).convert_alpha()
+        self.size: Tuple[int, int] = size
+        self.sprites: dict[int, pygame.Surface] = {}
+        self.masks: dict[int, pygame.mask.Mask] = {}
         self.load_sprites()
     def load_sprites(self):
         idx = 0
@@ -18,6 +16,9 @@ class Spritesheet:
                 image = pygame.Surface(rect.size, pygame.SRCALPHA).convert_alpha()
                 image.blit(self.sheet, (0, 0), rect)
                 self.sprites[idx] = image
+                self.masks[idx] = pygame.mask.from_surface(image)
                 idx += 1
     def get_sprite(self, idx: int) -> pygame.Surface:
         return self.sprites[idx]
+    def get_mask(self, idx: int) -> pygame.mask.Mask:
+        return self.masks[idx]

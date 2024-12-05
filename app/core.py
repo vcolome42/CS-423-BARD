@@ -5,16 +5,11 @@ import random
 
 
 class Game:
-    ground: Set[Tuple[int, int]]
-    entities: list
-    controller_entity = None
-    walls: Set[Tuple[int, int]]
-    game_over = False
-    next_level = False
     def __init__(self):
-        self.ground = set()
-        self.entities = []
-        self.walls = set()
+        self.ground: Set[Tuple[int, int]] = set()
+        self.entities: list = []
+        self.walls: Set[Tuple[int, int]] = set()
+        self.controller_entity = None
         self.game_over = False
         self.next_level = False
         self.inventory_open = False
@@ -33,6 +28,8 @@ class Game:
                 if isinstance(i, Stairs):
                     if i.grid_pos == self.controller_entity.grid_pos:
                         self.next_level = True
+            if self.controller_entity.destroyed:
+                self.game_over = True
 
     def create_occlusion_set(self) -> Set[Tuple[int, int]]:
         occ = set()
@@ -55,10 +52,11 @@ class Game:
         }
 
 class Entity:
-    grid_pos: Tuple[int, int]
-    sprite_idx: int = 15
-    collision: bool = False
-    destroyed: bool = False
+    def __init__(self, grid_pos: Tuple[int, int]):
+        self.grid_pos = grid_pos
+        self.sprite_idx: int = 15
+        self.collision: bool = False
+        self.destroyed: bool = False
     def with_grid_pos(self, grid_pos: Tuple[int, int]):
         self.grid_pos = grid_pos
         return self
@@ -72,6 +70,10 @@ class Entity:
         return False
     def interact(self, user):
         pass
+    def get_label(self) -> str | None:
+        return None
+    def get_suggestions(self) -> list[str] | None:
+        return None
 
     def get_synonym_list(self) -> Set[str]:
         return set()
@@ -102,14 +104,17 @@ class Entity:
         self.destroyed = True
 
 class Character(Entity):
-    def __init__(self, game: Game, health: int, attack_damage: int):
-        super().__init__()
-        self.game = game
+    def __init__(self, grid_pos: tuple[int, int], health: int, attack_damage: int):
+        super().__init__(grid_pos)
         self.health = health
         self.attack_damage = attack_damage
+        self.damaged_hint_check = False
+        self.damaged_hint = False
+        self.damaged_hint_frame = -1
 
     def take_damage(self, damage: int):
         self.health -= damage
+        self.damaged_hint_check = True
         if self.health <= 0:
             self.destroy()
 
@@ -120,14 +125,11 @@ class Character(Entity):
 
     def destroy(self):
         self.destroyed = True
-        if self == self.game.controller_entity:
-            print("game over")
-            self.game.game_over = True
-
 
 class Door(Entity):
-    opened: bool = False
-    def __init__(self):
+    def __init__(self, grid_pos: Tuple[int, int]):
+        super().__init__(grid_pos)
+        self.opened = False
         self.sprite_idx = 2
         self.collision = True
     def set_opened(self, opened: bool):
@@ -149,15 +151,23 @@ class Door(Entity):
         return True
     def interact(self, user):
         self.set_opened(not self.opened)
+    def get_label(self):
+        return "door"
+    def get_suggestions(self):
+        return ["interact"]
 
 class Stairs(Entity):
-    def __init__(self):
+    def __init__(self, grid_pos: Tuple[int, int]):
+        super().__init__(grid_pos)
         self.sprite_idx = 3
         self.collision = False
+    def get_label(self):
+        return "stairs"
 
 class LockedDoor(Entity):
-    opened: bool = False
-    def __init__(self):
+    def __init__(self, grid_pos: Tuple[int, int]):
+        super().__init__(grid_pos)
+        self.opened: bool = False
         self.sprite_idx = 5
         self.collision = True
     def set_opened(self, opened: bool):
@@ -175,7 +185,6 @@ class LockedDoor(Entity):
         return super().get_flags().union({
             "opened" if self.opened else "closed"
         })
-
     def can_interact(self):
         return True
     def interact(self, user):
@@ -184,24 +193,31 @@ class LockedDoor(Entity):
                 self.set_opened(True)
             else:
                 print("You don't have a key")
+    def get_label(self):
+        return "locked door"
+    def get_suggestions(self):
+        return ["unlock"]
 
 class ItemEntity(Entity):
-    def __init__(self, item: Item):
-        super().__init__()
+    def __init__(self, item: Item, grid_pos: Tuple[int, int]):
+        super().__init__(grid_pos)
         self.item = item
         self.sprite_idx = item.sprite_idx
         self.collision = False
-
     def get_synonym_list(self) -> Set[str]:
         return super().get_synonym_list().union({
             self.item.name.lower(),
             "potion",
             "health potion"
         })
+    def get_label(self):
+        return self.item.name
+    def get_suggestions(self):
+        return ["pick up"]
 
 class Player(Character):
-    def __init__(self, game: Game):
-        super().__init__(game, health=100, attack_damage=10)
+    def __init__(self, grid_pos: tuple[int, int]):
+        super().__init__(grid_pos, health=100, attack_damage=10)
         self.max_health = 100
         self.inventory = {}
         self.sprite_idx = 8
@@ -226,8 +242,8 @@ class Player(Character):
             return False
 
 class Slime(Character):
-    def __init__(self, game: Game):
-        super().__init__(game, health=20, attack_damage=5)
+    def __init__(self, grid_pos: tuple[int, int]):
+        super().__init__(grid_pos, health=20, attack_damage=5)
         self.sprite_idx = 9
         self.collision = True
     def get_synonym_list(self) -> Set[str]:
@@ -235,10 +251,14 @@ class Slime(Character):
             "slime",
             "enemy",
         })
+    def get_label(self):
+        return "slime"
+    def get_suggestions(self):
+        return ["attack"]
 
 class Skeleton(Character):
-    def __init__(self, game: Game):
-        super().__init__(game, health=30, attack_damage=7)
+    def __init__(self, grid_pos: tuple[int, int]):
+        super().__init__(grid_pos, health=30, attack_damage=7)
         self.sprite_idx = 13
         self.collision = True
     def get_synonym_list(self) -> Set[str]:
@@ -246,6 +266,10 @@ class Skeleton(Character):
             "skeleton",
             "enemy",
         })
+    def get_label(self):
+        return "skeleton"
+    def get_suggestions(self):
+        return ["attack"]
 
 class EntityAction:
     def is_valid(self, user: Entity, game: Game) -> bool:
@@ -257,7 +281,6 @@ class WaitAction:
     def act(self, user: Entity, game: Game):
         pass
 class TeleportAction(EntityAction):
-    target_pos: Tuple[int, int]
     def __init__(self, target_pos: Tuple[int, int]):
         self.target_pos = target_pos
     def is_valid(self, user: Entity, game: Game) -> bool:
@@ -266,7 +289,6 @@ class TeleportAction(EntityAction):
     def act(self, user: Entity, game: Game):
         user.grid_pos = self.target_pos
 class MoveAction(EntityAction):
-    delta_pos: Tuple[int, int]
     def __init__(self, delta_pos: Tuple[int, int]):
         self.delta_pos = delta_pos
     def is_valid(self, user: Entity, game: Game) -> bool:
@@ -348,7 +370,6 @@ class PickUpAction(EntityAction):
             print("No items nearby to pick up.")
 
 class InteractAction(EntityAction):
-    target: Entity
     def __init__(self, target: Entity):
         self.target = target
     def are_positions_adjacent(self, pos1: Tuple[int, int], pos2: Tuple[int, int]) -> bool:

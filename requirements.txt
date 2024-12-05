@@ -1,0 +1,7 @@
+setuptools
+soundfile~=0.12.1
+pygame-ce~=2.5.2
+PyAudio~=0.2.14
+SpeechRecognition~=3.11.0
+openai-whisper
+typing_extensions~=4.12.2
