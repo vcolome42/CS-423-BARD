@@ -22,3 +22,6 @@ API_KEY=key
 # Assets Used
 Info Font: https://managore.itch.io/m3x6
 Daniel Linssen
+
+# References
+Zhang, A. (2017). Speech Recognition (Version 3.11) [Software]. Available from https://github.com/Uberi/speech_recognition#readme.

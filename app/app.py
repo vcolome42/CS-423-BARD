@@ -10,32 +10,28 @@ import re
 
 from dungeon import generate
 from commands import commands
-from dotenv import dotenv_values
+# from dotenv import dotenv_values
+# SECRETS = dotenv_values(".env.secret")
 
-SECRETS = dotenv_values(".env.secret")
-
+LIST_MICS = False
+MIC_INDEX = None
+# None = default device
 
 class SrModel:
-    GOOGLE = 1
+    GOOGLE = 1  # Not suitable for punctuation and sentences.
     WHISPER_LOCAL = 2
-    WHISPER_API = 3
-
-
+    # WHISPER_API = 3
 SR_MODEL = SrModel.WHISPER_LOCAL
 
-WHISPER_API_KEY = None
-if "API_KEY" in SECRETS:
-    WHISPER_API_KEY = SECRETS["API_KEY"]
-    print("Whisper API Key found:", WHISPER_API_KEY)
-    if SR_MODEL != SrModel.WHISPER_API:
-        print("[WARN] Whisper API key found but not using SrModel.WHISPER_API")
+# WHISPER_API_KEY = None
+# if "API_KEY" in SECRETS:
+#     WHISPER_API_KEY = SECRETS["API_KEY"]
+#     print("Whisper API Key found:", WHISPER_API_KEY)
+#     if SR_MODEL != SrModel.WHISPER_API:
+#         print("[WARN] Whisper API key found but not using SrModel.WHISPER_API")
 
 CONTROLS = True
 CHEATS = True
-
-# Print microphones as list
-# for i, microphone_name in enumerate(speech.Microphone.list_microphone_names()):
-#     print(i, microphone_name)
 
 game = core.Game()
 generate(game, 4, (32, 32))
@@ -506,8 +502,8 @@ def recognize_data(recognizer: speech.Recognizer, data: speech.AudioData) -> Non
     try:
         if SR_MODEL == SrModel.GOOGLE:
             out = recognizer.recognize_google(data)
-        elif SR_MODEL == SrModel.WHISPER_API:
-            out = recognizer.recognize_whisper_api(data, api_key=WHISPER_API_KEY)
+        # elif SR_MODEL == SrModel.WHISPER_API:
+            # out = recognizer.recognize_whisper_api(data, api_key=WHISPER_API_KEY)
         elif SR_MODEL == SrModel.WHISPER_LOCAL:
             out = recognizer.recognize_whisper(data, model="base.en")
         else:
@@ -520,7 +516,7 @@ def recognize_data(recognizer: speech.Recognizer, data: speech.AudioData) -> Non
 
 def on_listener_heard(recognizer: speech.Recognizer, data: speech.AudioData):
     global text_surf
-    print("heard audio: ", data)
+    print("Heard a phrase, listening. ", data)
     vc_command = recognize_data(recognizer, data)
     text = f"Voice: {vc_command}" if vc_command else "Voice: No words recognized."
     text_surf = DEFAULT_FONT.render(text, False, (255, 255, 255), (0, 0, 0))
@@ -532,10 +528,18 @@ def on_listener_heard(recognizer: speech.Recognizer, data: speech.AudioData):
             "Command not recognized.", False, (255, 0, 0), (0, 0, 0)
         )
 
+# Print microphones as list
+if LIST_MICS:
+    for i, microphone_name in enumerate(speech.Microphone.list_microphone_names()):
+        print(i, microphone_name)
+
+microphones = dict(enumerate(speech.Microphone.list_microphone_names()))
+print(f"Using default microphone {microphones[0]}. \nIf this is incorrect, please assign a microphone using LIST_MICS = TRUE and set MIC_INDEX to the microphone.")
 
 RECOGNIZER = speech.Recognizer()
 RECOGNIZER.dynamic_energy_threshold = False
-MIC = speech.Microphone()
+MIC = speech.Microphone(device_index=MIC_INDEX)
+
 with MIC as source:
     hint = "Calibrating mic for noise. Please remain quiet."
     print(hint)
