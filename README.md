@@ -30,6 +30,22 @@ On macOS/Linux
 WARNING: `python app/app.py` will not work.
 PyGame requires the working directory to be set to app/ in order to properly load resources
 
+# Troubleshooting
+
+## Voice recognition is slow
+The Whisper model has to download and set up the first time you use the program's voice recognition.
+After you download it once, it will not need to download again, but does need to initialize still
+after the app has restarted.
+
+## Microphone not working
+A good sanity check for if your microphone is working properly is to check if the dynamic threshold
+calibration value is a normal value.
+After the app starts, it will calibrate the energy_threshold. A nominal value ranges from 180-2000.
+If the threshold is set too high (~3000-4000), that means your mic is too loud, and you may need to
+adjust it in the Sound Control Panel.
+If the threshold is really quiet ~0, it's possible that it your mic may be completely silent.
+This may not be true if you're using noise removal software or high dynamic range microphones.
+
 # Assets Used
 Info Font: https://managore.itch.io/m3x6
 Daniel Linssen
