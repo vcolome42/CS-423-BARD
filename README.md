@@ -2,22 +2,33 @@
 
 BARD's goal is to transform a classic game (Rogue) into a natural user experience using a voice-controlled user interface. By developing, implementing and iterating on the human interaction cycle, we aim to allow the user to control the game seamlessly as if they were in the game itself, maximizing immersion and gameplay enjoyment.
 
+# Prerequisites
+- Python 3.12 installed on your machine.
+- pip (Check using `pip --version`)
+- venv (Check using `python -m venv --help`)
+
 # Setup
-1. Install Python 3
-2. Install pygame-ce using `pip install pygame-ce`
-3. Install python-dotenv `pip install python-dotenv`
+1. Verify and install prerequisites.
 
-## Running Whisper model locally
-1. Install Whisper module `pip install openai-whisper`
-2. Install soundfile `pip install soundfile`
+2. Clone `git clone https://github.com/vcolome42/CS-423-BARD.git`
 
-## Using Whisper OpenAI if you have an API key and billing.
-1. Make sure openai module is installed `pip install openai`
-2. Create a file `app/.env.secrets`
-3. Write in your API key as such
-```
-API_KEY=key
-```
+3. Move into the project directory `cd CS-423-BARD`
+
+4. Create virtual environment using `python -m venv venv`
+
+5. Ensure that the virtual environment has started
+On Windows
+`venv\Scripts\activate`
+On macOS/Linux
+`source venv/bin/activate`
+
+6. Install requirements using `pip install -r requirements.txt`
+
+7. Move into the folder using `cd app`
+
+8. Run the program using `python app.py`
+WARNING: `python app/app.py` will not work.
+PyGame requires the working directory to be set to app/ in order to properly load resources
 
 # Assets Used
 Info Font: https://managore.itch.io/m3x6
