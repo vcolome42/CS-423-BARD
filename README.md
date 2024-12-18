@@ -2,6 +2,8 @@
 
 BARD's goal is to transform a classic game (Rogue) into a natural user experience using a voice-controlled user interface. By developing, implementing and iterating on the human interaction cycle, we aim to allow the user to control the game seamlessly as if they were in the game itself, maximizing immersion and gameplay enjoyment.
 
+![Screenshot of latest Rogue version and window.](screenshot.png?raw=true)
+
 # Prerequisites
 - Python 3.12 installed on your machine.
 - pip (Check using `pip --version`)
